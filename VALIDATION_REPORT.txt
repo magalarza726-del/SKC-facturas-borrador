@@ -1,0 +1,32 @@
+VALIDACIÓN DEL PROYECTO — VERSIONES 1.5.0 Y WEB 2.0.0
+=====================================================
+
+Versión web para GitHub Pages:
+- Sintaxis de todos los módulos JavaScript: correcta.
+- Referencias HTML, imports ES Modules, manifest y caché PWA: correctas.
+- Prueba de lógica con IndexedDB simulado: aprobada.
+- Prueba E2E real en Chromium: aprobada.
+- Alta de usuario, gasto, saldo, transferencia y confirmación: verificadas.
+- Navegación por todos los módulos: verificada.
+- Recarga sin conexión mediante service worker: verificada.
+- Diseño adaptable principal: revisado en Chromium.
+- Esquema Supabase incluido y validado estructuralmente; falta probarlo con las credenciales reales del cliente.
+
+Versión de escritorio:
+- Pruebas automatizadas: 21 aprobadas.
+- Migración de bases SQLite anteriores: verificada.
+- Directorio de usuarios y separación creador/responsable: verificados.
+- Detección de duplicados y hashes de evidencias: verificada.
+- Recordatorios con cancelación trazable: verificados.
+- Libro de movimientos y cálculo de saldos: verificados.
+- Conflictos de sincronización por versiones antiguas: corregidos y cubiertos por pruebas.
+- Simulación con dos instalaciones y carpeta compartida: verificada.
+- Confirmación de transferencia propagada a ambos clientes: verificada.
+- Idempotencia de ciclos repetidos: verificada.
+- Exportación Excel: verificada.
+
+Pendiente de validación en infraestructura del cliente:
+- Supabase Auth, RLS y Storage con cuentas reales.
+- URL final de GitHub Pages en los dispositivos de SKC.
+- Política de acceso, privacidad y retención de evidencias.
+- Microsoft Graph y ejecutable Windows, únicamente para la variante de escritorio.

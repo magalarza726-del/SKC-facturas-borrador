@@ -1,0 +1,4 @@
+SKC Facturas Web 2.0.0
+Checkpoint de origen: f731331
+Publicación: carpeta docs/ mediante GitHub Actions
+Backend opcional: Supabase
