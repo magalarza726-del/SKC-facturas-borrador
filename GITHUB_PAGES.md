@@ -1,4 +1,4 @@
-# SKC Facturas Web 2.0.0 — Publicación en GitHub Pages
+# SKC Facturas Web 2.1.0 — Publicación en GitHub Pages
 
 Esta versión reemplaza la interfaz PySide6 por una aplicación web estática en HTML, CSS y JavaScript. El contenido publicable está dentro de `docs/` y no necesita Python, Node.js ni un proceso de compilación en GitHub Pages.
 
@@ -12,6 +12,17 @@ Esta versión reemplaza la interfaz PySide6 por una aplicación web estática en
 6. Abra la URL indicada por el job `deploy`.
 
 El archivo `.github/workflows/pages.yml` valida y publica la carpeta `docs/`. El punto de entrada es `docs/index.html`.
+
+## Dos interfaces funcionales
+
+La versión 2.1.0 incluye un selector persistente entre **Escritorio** y **Móvil**. No son sitios separados: ambas interfaces utilizan la misma base IndexedDB, la misma sesión de Supabase y las mismas reglas de negocio.
+
+- En escritorio, use el selector ubicado en la barra superior.
+- En móvil, toque el botón de vista situado en la esquina superior derecha para regresar al escritorio.
+- En teléfonos, la primera apertura selecciona automáticamente el modo móvil.
+- La preferencia queda guardada en `localStorage` y se mantiene después de recargar.
+
+Las pantallas móviles incluyen Inicio, Subir factura, Historial, Recordatorios, Mensajes, Solicitar monto, Enviar transferencia, Flujo, Configuración y Manual.
 
 ## Dos modos de operación
 

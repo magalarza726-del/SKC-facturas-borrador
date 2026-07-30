@@ -1,5 +1,15 @@
 # Historial de cambios
 
+## 2.1.0 — Vista dual escritorio/móvil
+
+- Selector persistente entre modo Escritorio y modo Móvil.
+- Interfaz móvil de alta fidelidad para Inicio, Subir factura, Historial, Recordatorios, Mensajes, Solicitar monto, Enviar transferencia, Flujo, Configuración y Manual.
+- Navegación inferior móvil y cabecera adaptada.
+- Formularios y acciones comparten la misma base de datos y lógica en ambas vistas.
+- Nuevo botón Posponer para recordatorios.
+- Opción de pausar o reactivar la sincronización automática.
+- Caché PWA actualizada para incluir los nuevos módulos visuales.
+
 ## 2.0.0 — GitHub Pages
 
 - Se creó una versión web estática independiente, publicable directamente desde `docs/`.

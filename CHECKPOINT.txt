@@ -1,0 +1,3 @@
+SKC Facturas GitHub Pages 2.1.0
+Commit de validación: 4b08e67
+Incluye vistas Escritorio y Móvil funcionales.

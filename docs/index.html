@@ -13,7 +13,7 @@
 <body>
   <noscript>SKC Facturas necesita JavaScript para funcionar.</noscript>
   <div id="shell" class="shell">
-    <header class="topbar">
+    <header class="topbar desktop-chrome">
       <a class="brand" href="#home" aria-label="Ir al inicio">
         <span class="brand-mark" aria-hidden="true">SKC</span>
         <span><strong>SKC Ingeniería</strong><small>Facturas</small></span>
@@ -22,12 +22,33 @@
       <div class="topbar-actions">
         <label class="user-switcher"><span>Usuario</span><select id="currentUserSelect" aria-label="Usuario actual"></select></label>
         <button id="syncButton" class="button button-secondary button-compact" type="button">Sincronizar</button>
-        <button id="mobileMenuButton" class="icon-button mobile-only" type="button" aria-label="Abrir menú">☰</button>
+        <div class="view-switch" role="group" aria-label="Modo de visualización">
+          <button id="desktopViewButton" class="view-switch-button" type="button" aria-label="Ver modo escritorio">▣ <span>Escritorio</span></button>
+          <button id="mobileViewButton" class="view-switch-button" type="button" aria-label="Ver modo móvil">▯ <span>Móvil</span></button>
+        </div>
       </div>
     </header>
-    <aside id="mobileNav" class="mobile-nav" aria-label="Menú móvil"></aside>
+
+    <header class="mobile-app-header mobile-chrome">
+      <div class="mobile-statusbar" aria-hidden="true"><strong id="mobileClock">9:41</strong><span>▮▮▮ ))) ▰</span></div>
+      <div class="mobile-appbar">
+        <button id="mobileBackButton" class="mobile-back" type="button" aria-label="Volver">‹</button>
+        <a class="mobile-brand" href="#home" aria-label="Ir al inicio"><span class="mobile-logo">SKC</span></a>
+        <strong id="mobilePageTitle" class="mobile-page-title">SKC Ingeniería · Facturas</strong>
+        <button id="mobileViewToggle" class="mobile-header-action" type="button" aria-label="Cambiar a modo escritorio" title="Cambiar vista">▣</button>
+      </div>
+      <div class="mobile-userbar">
+        <span class="mobile-avatar" aria-hidden="true">●</span>
+        <label class="mobile-user-select"><span class="sr-only">Usuario actual</span><select id="mobileCurrentUserSelect" aria-label="Usuario actual"></select></label>
+        <span class="mobile-record-count" id="mobileRecordCount">Registros locales: 0</span>
+        <span class="mobile-online"><i></i> En línea</span>
+      </div>
+    </header>
+
     <main id="app" class="app" tabindex="-1"><section class="loading-panel"><div class="spinner"></div><p>Preparando SKC Facturas…</p></section></main>
-    <footer class="footer"><span id="footerStatus">Datos locales del navegador</span><span>Versión web 2.0.0</span></footer>
+
+    <nav id="mobileBottomNav" class="mobile-bottom-nav mobile-chrome" aria-label="Navegación móvil"></nav>
+    <footer class="footer desktop-chrome"><span id="footerStatus">Datos locales del navegador</span><span>Versión web 2.1.0 · Vista adaptable</span></footer>
   </div>
   <div id="toastRegion" class="toast-region" aria-live="polite" aria-atomic="true"></div>
   <div id="modalRoot"></div>

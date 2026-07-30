@@ -1,7 +1,7 @@
-const CACHE='skc-facturas-web-v2.0.0';
+const CACHE='skc-facturas-web-v2.1.0';
 const ASSETS=[
   './','./index.html','./404.html','./manifest.webmanifest','./icons/icon.svg','./supabase-schema.sql',
-  './assets/styles.css','./assets/app.js','./assets/db.js','./assets/files.js','./assets/store.js','./assets/sync.js','./assets/ui.js','./assets/utils.js',
+  './assets/styles.css','./assets/app.js','./assets/view.js','./assets/mobile.js','./assets/db.js','./assets/files.js','./assets/store.js','./assets/sync.js','./assets/ui.js','./assets/utils.js',
   './assets/pages/home.js','./assets/pages/invoice.js','./assets/pages/messages.js','./assets/pages/reminders.js','./assets/pages/flow.js','./assets/pages/history.js','./assets/pages/settings.js','./assets/pages/manual.js'
 ];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting())));

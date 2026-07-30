@@ -1,6 +1,15 @@
-# SKC Facturas Web 2.0.0
+# SKC Facturas Web 2.1.0
 
 Aplicación web estática para registrar compras, evitar duplicados, manejar recordatorios y transferencias, y calcular saldos desde un libro de movimientos auditable.
+
+## Vista escritorio y vista móvil
+
+La misma aplicación incluye dos interfaces completas que trabajan sobre los mismos datos:
+
+- **Escritorio:** navegación horizontal, tablas amplias y formularios distribuidos en columnas.
+- **Móvil:** interfaz tipo aplicación, cabecera compacta, navegación inferior, tarjetas y formularios optimizados para teléfonos.
+
+El selector **Escritorio / Móvil** aparece en la barra superior. La selección queda guardada en el navegador. En una pantalla pequeña, la primera apertura usa automáticamente el modo móvil.
 
 ## Publicar en GitHub Pages
 

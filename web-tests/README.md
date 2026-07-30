@@ -1,25 +1,13 @@
-# Pruebas de la versión web
+# Pruebas web
 
-## Lógica e IndexedDB
+- `validate_static.py`: valida archivos, imports, manifest, service worker y workflow.
+- `store-smoke.mjs`: prueba operaciones principales del almacén usando IndexedDB simulado.
+- `e2e.py`: flujo funcional completo en modo escritorio.
+- `e2e_dual_view.py`: cambio de vista, persistencia y apertura de todas las pantallas móviles.
+- `e2e_mobile_functional.py`: flujo móvil con usuario, factura, recordatorio, solicitud, transferencia, confirmación y saldo.
 
-```bash
-node --experimental-default-type=module web-tests/store-smoke.mjs
-```
-
-## Estructura estática
-
-```bash
-python web-tests/validate_static.py
-```
-
-## Prueba real en Chromium
+Ejemplo:
 
 ```bash
-pip install playwright
-playwright install chromium
-python web-tests/e2e.py
+CHROMIUM_EXECUTABLE=/usr/lib/chromium/chromium python web-tests/e2e.py
 ```
-
-La prueba abre un servidor local temporal, crea dos usuarios, registra un gasto, envía y confirma una transferencia, revisa los saldos, navega por todos los módulos y comprueba una recarga sin conexión.
-
-La variable opcional `CHROMIUM_EXECUTABLE` permite indicar un Chromium ya instalado.

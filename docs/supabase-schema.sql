@@ -1,4 +1,4 @@
--- SKC Facturas Web 2.0.0
+-- SKC Facturas Web 2.1.0
 -- Ejecute este archivo en Supabase SQL Editor.
 -- La aplicación usa únicamente usuarios autenticados y una anon/public key.
 

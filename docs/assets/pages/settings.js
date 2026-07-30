@@ -2,8 +2,10 @@ import {store} from '../store.js';
 import {sync} from '../sync.js';
 import {dateLabel,downloadBlob,escapeHtml,money,nowIso,parseLines,uuid} from '../utils.js';
 import {$,$all,badge,confirmDialog,optionsHtml,pageHeader,showModal,toast} from '../ui.js';
+import {isMobileView} from '../view.js';
+import {mobileIcon} from '../mobile.js';
 
-let tab='users';
+let tab='users',mobileSection='home';
 
 function userRows(){
   const rows=store.users(true);
@@ -113,12 +115,46 @@ function addProjectGroup(container){
   const x=document.createElement('div');x.className='catalog-group';x.dataset.projectGroup='';x.dataset.id=uuid();x.innerHTML=`<div class="row space-between"><strong>Nueva descripción y Proyectos 2</strong><button type="button" class="button button-danger button-compact" data-remove-project-group>Eliminar</button></div><div class="form-grid" style="margin-top:12px"><div class="field span-5"><label class="required">Descripción base</label><input data-project-description></div><div class="field span-7"><label class="required">Lista de Proyecto 2</label><textarea data-project-options placeholder="Un proyecto por línea"></textarea></div></div>`;container.append(x);x.querySelector('[data-remove-project-group]').addEventListener('click',()=>x.remove());x.querySelector('input')?.focus();
 }
 
+
+function renderMobileSettingsHome(session){
+  const u=store.currentUser(),s=store.settings.sync||{};
+  return `<div class="mobile-page"><div class="mobile-settings-menu">
+    <section class="mobile-setting-group">
+      <button class="mobile-setting-link" type="button" data-mobile-settings="users">${mobileIcon('●')}<span><strong>Perfil y usuario</strong><small>Gestiona usuarios, roles, permisos y saldos.</small></span><span>›</span></button>
+      <button class="mobile-setting-link" type="button" data-mobile-settings="catalogs">${mobileIcon('▱','purple')}<span><strong>Catálogos</strong><small>Administra descripciones, Proyecto 2 y listas.</small></span><span>›</span></button>
+    </section>
+    <section class="mobile-setting-group">
+      <button class="mobile-setting-link" type="button" data-mobile-settings="users">${mobileIcon('●●','green')}<span><strong>Usuarios y permisos</strong><small>Invita usuarios y asigna roles.</small></span><span>›</span></button>
+      <div class="mobile-setting-toggle"><span><strong>Permitir enviar transferencias</strong><small>Habilita esta función para ${escapeHtml(u.name)}.</small></span><label class="mobile-toggle"><input id="mobileTransferToggle" type="checkbox" ${u.transferEnabled?'checked':''} ${store.isAdmin()?'':'disabled'}><span></span></label></div>
+    </section>
+    <section class="mobile-setting-group">
+      <button class="mobile-setting-link" type="button" data-mobile-settings="sync">${mobileIcon('↗')}<span><strong>Integraciones</strong><small>Conecta SKC con Supabase y otros servicios.</small></span><span>›</span></button>
+    </section>
+    <section class="mobile-setting-group">
+      <button class="mobile-setting-link" type="button" data-mobile-settings="sync">${mobileIcon('☁')}<span><strong>Sincronización</strong><small>Configura datos compartidos y frecuencia.</small></span><span>›</span></button>
+      <div class="mobile-setting-toggle"><span><strong>Sincronización automática</strong><small>Actualiza datos en segundo plano.</small></span><label class="mobile-toggle"><input id="mobileAutoSyncToggle" type="checkbox" ${s.auto!==false?'checked':''}><span></span></label></div>
+      <div class="mobile-health"><div class="mobile-health-line"><span>✓ Estado de la base local</span>${badge('SALUDABLE')}</div><div class="mobile-health-line"><span>◷ Último respaldo</span><strong>${dateLabel(s.lastSyncAt,true)}</strong></div></div>
+      <button class="mobile-setting-link" type="button" data-mobile-settings="rules">${mobileIcon('▤','orange')}<span><strong>Respaldos</strong><small>Exporta, importa o reinicia datos locales.</small></span><span>›</span></button>
+    </section>
+    <section class="mobile-setting-group">
+      <button class="mobile-setting-link" type="button" data-mobile-settings="rules">${mobileIcon('●','orange')}<span><strong>Notificaciones</strong><small>Configura recordatorios y reglas operativas.</small></span><span>›</span></button>
+      <div class="mobile-setting-toggle"><span><strong>Recordatorios activos</strong><small>Recibe avisos mientras la app está abierta.</small></span><label class="mobile-toggle"><input id="mobileNotificationsToggle" type="checkbox" ${store.settings.notificationsEnabled?'checked':''}><span></span></label></div>
+    </section>
+  </div></div>`;
+}
+
 export async function renderSettings(app){
   const session=await sync.session().catch(()=>null);
   const actions=store.isAdmin()&&tab==='users'?'<button class="button" id="headerAddUser" type="button">Agregar usuario</button>':'';
-  app.innerHTML=`${pageHeader('Configuración','Administra usuarios, listas desplegables, conexión y respaldos.',actions,'Administración')}<div class="tabs"><button class="tab ${tab==='users'?'active':''}" data-settings-tab="users">Usuarios</button><button class="tab ${tab==='catalogs'?'active':''}" data-settings-tab="catalogs">Catálogos</button><button class="tab ${tab==='sync'?'active':''}" data-settings-tab="sync">Sincronización</button><button class="tab ${tab==='rules'?'active':''}" data-settings-tab="rules">Reglas y respaldo</button></div><div id="settingsPanel">${tab==='users'?renderUsers():tab==='catalogs'?renderCatalogs():tab==='sync'?renderSync(session):renderRules()}</div>`;
+  if(isMobileView()&&mobileSection==='home')app.innerHTML=renderMobileSettingsHome(session);
+  else app.innerHTML=`${isMobileView()?'<button class="button button-ghost" id="mobileSettingsBack" type="button">‹ Volver a Configuración</button>':pageHeader('Configuración','Administra usuarios, listas desplegables, conexión y respaldos.',actions,'Administración')}<div class="tabs"><button class="tab ${tab==='users'?'active':''}" data-settings-tab="users">Usuarios</button><button class="tab ${tab==='catalogs'?'active':''}" data-settings-tab="catalogs">Catálogos</button><button class="tab ${tab==='sync'?'active':''}" data-settings-tab="sync">Sincronización</button><button class="tab ${tab==='rules'?'active':''}" data-settings-tab="rules">Reglas y respaldo</button></div><div id="settingsPanel">${tab==='users'?renderUsers():tab==='catalogs'?renderCatalogs():tab==='sync'?renderSync(session):renderRules()}</div>`;
 
-  $all('[data-settings-tab]',app).forEach(b=>b.addEventListener('click',()=>{tab=b.dataset.settingsTab;renderSettings(app)}));
+  $all('[data-mobile-settings]',app).forEach(b=>b.addEventListener('click',()=>{tab=b.dataset.mobileSettings;mobileSection='detail';renderSettings(app)}));
+  $('#mobileSettingsBack',app)?.addEventListener('click',()=>{mobileSection='home';renderSettings(app)});
+  $('#mobileTransferToggle',app)?.addEventListener('change',async e=>{try{await store.saveUser({...store.currentUser(),transferEnabled:e.target.checked});toast('Permiso actualizado.','success');renderSettings(app)}catch(err){toast(err.message,'error')}});
+  $('#mobileAutoSyncToggle',app)?.addEventListener('change',async e=>{await store.saveSettings({sync:{auto:e.target.checked}});sync.startPolling();toast(e.target.checked?'Sincronización automática activada.':'Sincronización automática pausada.','success')});
+  $('#mobileNotificationsToggle',app)?.addEventListener('change',async e=>{await store.saveSettings({notificationsEnabled:e.target.checked});toast('Preferencia de notificaciones guardada.','success')});
+  $all('[data-settings-tab]',app).forEach(b=>b.addEventListener('click',()=>{tab=b.dataset.settingsTab;mobileSection='detail';renderSettings(app)}));
   const add=async()=>{try{if(await editUser())renderSettings(app)}catch(e){toast(e.message,'error')}};
   $('#addUser',app)?.addEventListener('click',add);$('#headerAddUser',app)?.addEventListener('click',add);
   $all('[data-edit-user]',app).forEach(b=>b.addEventListener('click',async()=>{try{if(await editUser(store.userById(b.dataset.editUser)))renderSettings(app)}catch(e){toast(e.message,'error')}}));

@@ -2,6 +2,7 @@ import {store} from './store.js';
 import {sync} from './sync.js';
 import {$,$all,toast} from './ui.js';
 import {escapeHtml} from './utils.js';
+import {applyViewMode,getViewMode,initializeViewMode,toggleViewMode} from './view.js';
 import {renderHome} from './pages/home.js';
 import {renderInvoice} from './pages/invoice.js';
 import {renderMessages} from './pages/messages.js';
@@ -11,26 +12,49 @@ import {renderHistory} from './pages/history.js';
 import {renderSettings} from './pages/settings.js';
 import {renderManual} from './pages/manual.js';
 
+initializeViewMode();
+
 const routes={home:renderHome,invoice:renderInvoice,messages:renderMessages,reminders:renderReminders,flow:renderFlow,history:renderHistory,settings:renderSettings,manual:renderManual};
+const routeTitles={
+  home:'SKC Ingeniería · Facturas',invoice:'Subir factura',messages:'Mensajes',reminders:'Recordatorios',flow:'Flujo',history:'Historial',settings:'Configuración',manual:'Manual'
+};
 const navItems=[
   ['home','⌂','Inicio'],['invoice','🧾','Factura'],['messages','✉','Mensajes'],['reminders','⏰','Recordatorios'],['flow','▦','Flujo'],['history','↺','Historial'],['settings','⚙','Configuración'],['manual','?','Manual']
 ];
-let activeRoute='home',renderToken=0,reminderTimer=0;
+const mobileNavItems=[['home','⌂','Inicio'],['flow','⌁','Flujo'],['messages','◯','Mensajes'],['settings','⚙','Ajustes']];
+let activeRoute='home',renderToken=0,reminderTimer=0,clockTimer=0;
 
 function routeFromHash(){const r=location.hash.replace(/^#/,'').split(/[?&/]/)[0].trim();return routes[r]?r:'home'}
 export function navigate(route){const next=routes[route]?route:'home';if(location.hash!==`#${next}`)location.hash=next;else renderRoute()}
 
 function navHtml(){return navItems.map(([route,icon,label])=>`<a class="nav-link ${activeRoute===route?'active':''}" href="#${route}" data-nav-route="${route}"><span aria-hidden="true">${icon}</span><span>${escapeHtml(label)}</span></a>`).join('')}
+function mobileNavActive(route){return ['invoice','history','reminders','manual'].includes(route)?'home':route}
+function mobileNavHtml(){
+  const current=mobileNavActive(activeRoute),unread=store.incomingMessages().filter(x=>x.status==='ENVIADO').length;
+  return mobileNavItems.map(([route,icon,label])=>`<a class="mobile-bottom-link ${current===route?'active':''}" href="#${route}" aria-label="${escapeHtml(label)}"><span class="mobile-nav-icon" aria-hidden="true">${icon}</span>${route==='messages'&&unread?`<span class="nav-badge">${Math.min(unread,99)}</span>`:''}<span>${escapeHtml(label)}</span></a>`).join('');
+}
+function userOptions(){const current=store.currentUser().id;return store.users().map(u=>`<option value="${escapeHtml(u.id)}" ${u.id===current?'selected':''}>${escapeHtml(u.name)}</option>`).join('')}
+function updateClock(){const x=$('#mobileClock');if(x)x.textContent=new Intl.DateTimeFormat('es-US',{hour:'numeric',minute:'2-digit'}).format(new Date())}
+function updateViewControls(){
+  const mobile=getViewMode()==='mobile';
+  $('#desktopViewButton')?.classList.toggle('active',!mobile);$('#mobileViewButton')?.classList.toggle('active',mobile);
+  const toggle=$('#mobileViewToggle');if(toggle){toggle.textContent='▣';toggle.title='Cambiar a modo escritorio';toggle.setAttribute('aria-label','Cambiar a modo escritorio')}
+}
 function updateChrome(){
-  $('#desktopNav').innerHTML=navHtml();$('#mobileNav').innerHTML=navHtml();
-  const select=$('#currentUserSelect'),users=store.users();select.innerHTML=users.map(u=>`<option value="${escapeHtml(u.id)}" ${u.id===store.currentUser().id?'selected':''}>${escapeHtml(u.name)}</option>`).join('');
-  const mode=store.settings.sync?.provider==='supabase'?'Supabase':'local';const last=store.settings.sync?.lastSyncAt;
+  $('#desktopNav').innerHTML=navHtml();
+  $('#mobileBottomNav').innerHTML=mobileNavHtml();
+  const opts=userOptions();$('#currentUserSelect').innerHTML=opts;$('#mobileCurrentUserSelect').innerHTML=opts;
+  const mode=store.settings.sync?.provider==='supabase'?'Supabase':'local',last=store.settings.sync?.lastSyncAt;
   $('#footerStatus').textContent=mode==='Supabase'?`Modo Supabase${last?` · última sincronización ${new Date(last).toLocaleString('es-US')}`:''}`:'Datos locales del navegador';
+  $('#mobileRecordCount').textContent=`Registros locales: ${store.state.transactions.length}`;
+  $('#mobilePageTitle').textContent=routeTitles[activeRoute]||routeTitles.home;
+  $('#mobileBackButton').hidden=activeRoute==='home';
+  document.title=`${routeTitles[activeRoute]||'SKC Facturas'} · SKC`;
+  updateViewControls();updateClock();
 }
 
 async function renderRoute(){
   const token=++renderToken;activeRoute=routeFromHash();updateChrome();
-  $('#mobileNav').classList.remove('open');
   const app=$('#app');app.innerHTML='<section class="loading-panel"><div class="spinner"></div><p>Cargando módulo…</p></section>';
   try{
     await routes[activeRoute](app,navigate);
@@ -65,14 +89,20 @@ async function registerServiceWorker(){
   try{await navigator.serviceWorker.register('./sw.js',{scope:'./'})}catch(e){console.warn('Service worker no disponible:',e)}
 }
 
+async function changeUser(id){try{await store.setCurrentUser(id);await renderRoute()}catch(err){toast(err.message,'error');updateChrome()}}
+async function changeView(mode){applyViewMode(mode);await renderRoute()}
+
 async function bootstrap(){
   try{
     await store.initialize();
     updateChrome();
-    $('#currentUserSelect').addEventListener('change',async e=>{try{await store.setCurrentUser(e.target.value);await renderRoute()}catch(err){toast(err.message,'error');updateChrome()}});
+    $('#currentUserSelect').addEventListener('change',e=>changeUser(e.target.value));
+    $('#mobileCurrentUserSelect').addEventListener('change',e=>changeUser(e.target.value));
     $('#syncButton').addEventListener('click',manualSync);
-    $('#mobileMenuButton').addEventListener('click',()=>$('#mobileNav').classList.toggle('open'));
-    document.addEventListener('click',e=>{if(!e.target.closest('.topbar')&&!e.target.closest('#mobileNav'))$('#mobileNav').classList.remove('open')});
+    $('#desktopViewButton').addEventListener('click',()=>changeView('desktop'));
+    $('#mobileViewButton').addEventListener('click',()=>changeView('mobile'));
+    $('#mobileViewToggle').addEventListener('click',()=>{toggleViewMode();renderRoute()});
+    $('#mobileBackButton').addEventListener('click',()=>{if(history.length>1)history.back();else navigate('home')});
     window.addEventListener('hashchange',renderRoute);
     window.addEventListener('online',()=>{if(sync.isConfigured())sync.syncNow().then(renderRoute).catch(()=>{})});
     sync.addEventListener('status',e=>{const b=$('#syncButton');if(!b)return;b.disabled=Boolean(e.detail?.running);b.textContent=e.detail?.running?'Sincronizando…':'Sincronizar';if(e.detail?.message)$('#footerStatus').textContent=e.detail.message});
@@ -80,7 +110,7 @@ async function bootstrap(){
     store.addEventListener('settings',()=>{updateChrome();sync.startPolling()});
     sync.startPolling();
     await renderRoute();
-    await checkReminders();reminderTimer=setInterval(checkReminders,60000);
+    await checkReminders();reminderTimer=setInterval(checkReminders,60000);clockTimer=setInterval(updateClock,30000);
     await registerServiceWorker();
     if(sync.isConfigured()&&navigator.onLine){const session=await sync.session().catch(()=>null);if(session)sync.syncNow().then(renderRoute).catch(e=>console.warn(e))}
   }catch(e){
@@ -88,5 +118,5 @@ async function bootstrap(){
   }
 }
 
-window.addEventListener('beforeunload',()=>{clearInterval(reminderTimer);sync.stopPolling()});
+window.addEventListener('beforeunload',()=>{clearInterval(reminderTimer);clearInterval(clockTimer);sync.stopPolling()});
 bootstrap();
