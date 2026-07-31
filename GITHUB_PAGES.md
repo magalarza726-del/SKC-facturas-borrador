@@ -1,95 +1,46 @@
-# SKC Facturas Web 2.1.0 — Publicación en GitHub Pages
+from __future__ import annotations
+from contextlib import contextmanager
+from functools import partial
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+import os
+from threading import Thread
+from playwright.sync_api import sync_playwright, expect
 
-Esta versión reemplaza la interfaz PySide6 por una aplicación web estática en HTML, CSS y JavaScript. El contenido publicable está dentro de `docs/` y no necesita Python, Node.js ni un proceso de compilación en GitHub Pages.
+ROOT=Path(__file__).resolve().parents[1];DOCS=ROOT/'docs'
+class Quiet(SimpleHTTPRequestHandler):
+    def log_message(self,*_): pass
+@contextmanager
+def server():
+    h=partial(Quiet,directory=str(DOCS));s=ThreadingHTTPServer(('127.0.0.1',0),h);t=Thread(target=s.serve_forever,daemon=True);t.start()
+    try: yield f'http://127.0.0.1:{s.server_port}/#home'
+    finally:s.shutdown();t.join(timeout=3)
 
-## Publicación recomendada
-
-1. Cree un repositorio **privado** o público en GitHub y suba este proyecto.
-2. Use `main` como rama principal y haga `push`.
-3. Abra **Settings → Pages**.
-4. En **Build and deployment → Source**, seleccione **GitHub Actions**.
-5. Ejecute el flujo **Deploy GitHub Pages** o espere el primer despliegue automático.
-6. Abra la URL indicada por el job `deploy`.
-
-El archivo `.github/workflows/pages.yml` valida y publica la carpeta `docs/`. El punto de entrada es `docs/index.html`.
-
-## Dos interfaces funcionales
-
-La versión 2.1.0 incluye un selector persistente entre **Escritorio** y **Móvil**. No son sitios separados: ambas interfaces utilizan la misma base IndexedDB, la misma sesión de Supabase y las mismas reglas de negocio.
-
-- En escritorio, use el selector ubicado en la barra superior.
-- En móvil, toque el botón de vista situado en la esquina superior derecha para regresar al escritorio.
-- En teléfonos, la primera apertura selecciona automáticamente el modo móvil.
-- La preferencia queda guardada en `localStorage` y se mantiene después de recargar.
-
-Las pantallas móviles incluyen Inicio, Subir factura, Historial, Recordatorios, Mensajes, Solicitar monto, Enviar transferencia, Flujo, Configuración y Manual.
-
-## Dos modos de operación
-
-### Modo local
-
-No requiere backend. Los datos se guardan en IndexedDB dentro del navegador y la aplicación puede funcionar sin conexión después de la primera visita.
-
-Este modo es útil para demostraciones y uso individual. Cada navegador o perfil mantiene una base distinta. Borrar los datos del navegador también borra la instalación local, por lo que se deben descargar respaldos JSON.
-
-### Modo multiusuario con Supabase
-
-GitHub Pages sirve la interfaz, pero Supabase almacena los eventos y evidencias compartidas.
-
-1. Cree un proyecto en Supabase.
-2. Abra **SQL Editor** y ejecute `docs/supabase-schema.sql`.
-3. Cree las cuentas de los usuarios en Supabase Auth o permita el registro por correo.
-4. En la aplicación abra **Configuración → Sincronización**.
-5. Seleccione **Multiusuario con Supabase**.
-6. Pegue la URL del proyecto y la clave **anon/public**.
-7. Inicie sesión y use **Probar conexión**.
-
-Nunca copie la clave `service_role` al navegador ni al repositorio. La aplicación está diseñada para usar únicamente una clave anónima pública, autenticación por correo y políticas RLS.
-
-## Datos que no deben ir a GitHub
-
-No suba al repositorio:
-
-- Facturas, comprobantes o fotografías reales.
-- Respaldos JSON exportados por la aplicación.
-- Contraseñas.
-- Claves `service_role`.
-- Archivos `.env` con secretos.
-
-El repositorio contiene solamente código y el esquema de base de datos.
-
-## Funciones incluidas en la versión web
-
-- Registro de ingresos y gastos.
-- Evidencias en imagen o PDF.
-- Detección por proveedor, número de factura y hash del archivo.
-- Advertencias para compras similares sin comprobante.
-- Historial reciente y completo.
-- Recordatorios periódicos mientras la aplicación está abierta.
-- Solicitudes de monto y avisos de transferencia.
-- Confirmación o rechazo por el destinatario.
-- Libro contable, saldos iniciales, ajustes y reversos.
-- Flujo general y conciliación.
-- Usuarios, roles y permiso de transferencias.
-- Catálogos editables donde cada descripción tiene su propia lista de Proyecto 2.
-- Respaldo e importación JSON.
-- PWA y caché sin conexión.
-- Sincronización periódica opcional con Supabase.
-
-## Límites prácticos
-
-- Las notificaciones horarias no se ejecutan cuando el navegador está completamente cerrado.
-- El modo local no comparte datos entre navegadores.
-- La sincronización multiusuario necesita Supabase u otro backend equivalente.
-- Las políticas incluidas permiten a todos los usuarios autenticados del proyecto acceder a los datos de SKC. Para alojar varias empresas en el mismo proyecto, agregue `tenant_id` y políticas por organización.
-- Para información financiera sensible, proteja el repositorio, las cuentas de Supabase y el acceso a la URL publicada.
-
-## Prueba local
-
-Puede revisar el sitio con cualquier servidor estático:
-
-```bash
-python -m http.server 8080 --directory docs
-```
-
-Después abra `http://localhost:8080`. Abrir `index.html` directamente con `file://` no representa correctamente el comportamiento de módulos, IndexedDB y service workers.
+with server() as url,sync_playwright() as p:
+    b=p.chromium.launch(headless=True,executable_path=os.environ.get('CHROMIUM_EXECUTABLE'),args=['--no-sandbox'])
+    c=b.new_context(viewport={'width':430,'height':932});page=c.new_page();errors=[]
+    page.on('console',lambda m: errors.append(m.text) if m.type=='error' else None)
+    page.on('pageerror',lambda e: errors.append(str(e)))
+    page.goto(url,wait_until='networkidle')
+    expect(page.locator('html')).to_have_attribute('data-view-mode','mobile')
+    # Add a second user through mobile settings detail.
+    page.goto(url.split('#')[0]+'#settings',wait_until='networkidle')
+    page.get_by_role('button',name='Perfil y usuario',exact=False).click()
+    page.get_by_role('button',name='Agregar usuario').click()
+    modal=page.locator('.modal');modal.locator('input[name="name"]').fill('Karen');modal.locator('input[name="email"]').fill('karen@example.com');modal.locator('input[name="transferEnabled"]').check();modal.get_by_role('button',name='Guardar usuario').click()
+    expect(page.get_by_text('Karen',exact=True).first).to_be_visible()
+    # Mobile invoice form.
+    page.goto(url.split('#')[0]+'#invoice',wait_until='networkidle')
+    f=page.locator('#invoiceForm');f.locator('input[name="amount"]').fill('12.50');f.locator('#descriptionId').select_option(index=1);f.locator('select[name="project"]').select_option(index=1);f.locator('#noReceiptSwitch').locator('xpath=..').click();f.get_by_role('button',name='Guardar y enviar').click()
+    expect(page.get_by_text('Registro creado')).to_be_visible()
+    # Reminder create and postpone.
+    page.goto(url.split('#')[0]+'#reminders',wait_until='networkidle');page.locator('#mobileAddReminder').click();modal=page.locator('.modal');modal.locator('textarea').fill('Almuerzo proyecto RE-S11.01');modal.get_by_role('button',name='Crear recordatorio').click();expect(page.get_by_text('Almuerzo proyecto RE-S11.01')).to_be_visible();page.get_by_role('button',name='Posponer',exact=False).first.click();modal=page.locator('.modal');modal.locator('input').fill('90');modal.get_by_role('button',name='Posponer').click();expect(page.get_by_text('Recordatorio pospuesto.')).to_be_visible()
+    # Request amount.
+    page.goto(url.split('#')[0]+'#messages',wait_until='networkidle');page.get_by_role('button',name='Solicitar monto',exact=False).click();rf=page.locator('#fundRequestForm');rf.locator('input[name="amount"]').fill('40');rf.locator('select[name="recipientUserId"]').select_option(label='Karen');rf.locator('textarea[name="reason"]').fill('Materiales para mantenimiento');rf.get_by_role('button',name='Enviar solicitud').click();expect(page.get_by_text('Solicitud creada')).to_be_visible()
+    # Transfer and confirmation.
+    page.get_by_role('button',name='Enviar transferencia',exact=False).click();tf=page.locator('#transferForm');tf.locator('input[name="amount"]').fill('25');tf.locator('select[name="recipientUserId"]').select_option(label='Karen');tf.locator('textarea[name="reason"]').fill('Reembolso compra en sitio');tf.get_by_role('button',name='Enviar mensaje').click();expect(page.get_by_text('Transferencia registrada')).to_be_visible()
+    page.locator('#mobileCurrentUserSelect').select_option(label='Karen');page.wait_for_timeout(250);page.goto(url.split('#')[0]+'#messages',wait_until='networkidle');page.get_by_role('button',name='Confirmar').click();expect(page.get_by_text('Transferencia confirmada')).to_be_visible()
+    page.goto(url.split('#')[0]+'#flow',wait_until='networkidle');expect(page.locator('.mobile-balance-row').filter(has_text='KAREN')).to_contain_text('$25.00')
+    if errors: raise AssertionError('\n'.join(errors))
+    print('MOBILE FUNCTIONAL E2E OK')
+    b.close()

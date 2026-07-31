@@ -1,23 +1,57 @@
-# SKC Facturas Web 2.1.0
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#075fb5">
+  <meta name="description" content="SKC Facturas: registro de compras, mensajes, recordatorios y flujo de saldos.">
+  <title>SKC Ingeniería · Facturas</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icons/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./assets/styles.css">
+</head>
+<body>
+  <noscript>SKC Facturas necesita JavaScript para funcionar.</noscript>
+  <div id="shell" class="shell">
+    <header class="topbar desktop-chrome">
+      <a class="brand" href="#home" aria-label="Ir al inicio">
+        <span class="brand-mark" aria-hidden="true">SKC</span>
+        <span><strong>SKC Ingeniería</strong><small>Facturas</small></span>
+      </a>
+      <nav id="desktopNav" class="desktop-nav" aria-label="Navegación principal"></nav>
+      <div class="topbar-actions">
+        <label class="user-switcher"><span>Usuario</span><select id="currentUserSelect" aria-label="Usuario actual"></select></label>
+        <button id="syncButton" class="button button-secondary button-compact" type="button">Sincronizar</button>
+        <div class="view-switch" role="group" aria-label="Modo de visualización">
+          <button id="desktopViewButton" class="view-switch-button" type="button" aria-label="Ver modo escritorio">▣ <span>Escritorio</span></button>
+          <button id="mobileViewButton" class="view-switch-button" type="button" aria-label="Ver modo móvil">▯ <span>Móvil</span></button>
+        </div>
+      </div>
+    </header>
 
-Aplicación web estática para registrar compras, evitar duplicados, manejar recordatorios y transferencias, y calcular saldos desde un libro de movimientos auditable.
+    <header class="mobile-app-header mobile-chrome">
+      <div class="mobile-statusbar" aria-hidden="true"><strong id="mobileClock">9:41</strong><span>▮▮▮ ))) ▰</span></div>
+      <div class="mobile-appbar">
+        <button id="mobileBackButton" class="mobile-back" type="button" aria-label="Volver">‹</button>
+        <a class="mobile-brand" href="#home" aria-label="Ir al inicio"><span class="mobile-logo">SKC</span></a>
+        <strong id="mobilePageTitle" class="mobile-page-title">SKC Ingeniería · Facturas</strong>
+        <button id="mobileViewToggle" class="mobile-header-action" type="button" aria-label="Cambiar a modo escritorio" title="Cambiar vista">▣</button>
+      </div>
+      <div class="mobile-userbar">
+        <span class="mobile-avatar" aria-hidden="true">●</span>
+        <label class="mobile-user-select"><span class="sr-only">Usuario actual</span><select id="mobileCurrentUserSelect" aria-label="Usuario actual"></select></label>
+        <span class="mobile-record-count" id="mobileRecordCount">Registros locales: 0</span>
+        <span class="mobile-online"><i></i> En línea</span>
+      </div>
+    </header>
 
-## Vista escritorio y vista móvil
+    <main id="app" class="app" tabindex="-1"><section class="loading-panel"><div class="spinner"></div><p>Preparando SKC Facturas…</p></section></main>
 
-La misma aplicación incluye dos interfaces completas que trabajan sobre los mismos datos:
-
-- **Escritorio:** navegación horizontal, tablas amplias y formularios distribuidos en columnas.
-- **Móvil:** interfaz tipo aplicación, cabecera compacta, navegación inferior, tarjetas y formularios optimizados para teléfonos.
-
-El selector **Escritorio / Móvil** aparece en la barra superior. La selección queda guardada en el navegador. En una pantalla pequeña, la primera apertura usa automáticamente el modo móvil.
-
-## Publicar en GitHub Pages
-
-1. Suba todo el contenido de esta carpeta a un repositorio GitHub.
-2. Abra **Settings → Pages**.
-3. Seleccione **GitHub Actions** como fuente.
-4. El workflow incluido publica automáticamente `docs/`.
-
-La aplicación funciona en modo local con IndexedDB. Para compartir datos entre usuarios, configure Supabase desde la propia aplicación y ejecute `docs/supabase-schema.sql`.
-
-Consulte `GITHUB_PAGES.md` para el procedimiento completo y las reglas de seguridad.
+    <nav id="mobileBottomNav" class="mobile-bottom-nav mobile-chrome" aria-label="Navegación móvil"></nav>
+    <footer class="footer desktop-chrome"><span id="footerStatus">Datos locales del navegador</span><span>Versión web 2.2.0 · Configurable y adaptable</span></footer>
+  </div>
+  <div id="toastRegion" class="toast-region" aria-live="polite" aria-atomic="true"></div>
+  <div id="modalRoot"></div>
+  <script type="module" src="./assets/app.js"></script>
+</body>
+</html>

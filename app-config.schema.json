@@ -1,0 +1,82 @@
+{
+  "format": "skc-app-configuration",
+  "schemaVersion": 1,
+  "appVersion": "2.2.0",
+  "createdAt": "2026-07-29T23:30:00.000Z",
+  "settings": {
+    "groupName": "PROYECTOS",
+    "rules": {
+      "descriptionLimit": 500,
+      "duplicateWindowDays": 3,
+      "reminderIntervalMinutes": 60
+    },
+    "sync": {
+      "provider": "supabase",
+      "supabaseUrl": "PEGAR_URL_SUPABASE",
+      "anonKey": "PEGAR_ANON_PUBLIC_KEY",
+      "pollSeconds": 20,
+      "auto": true,
+      "allowSelfSignUp": false,
+      "lockUserToEmail": true
+    },
+    "integrations": {
+      "microsoft": {
+        "enabled": true,
+        "tenantId": "PEGAR_TENANT_ID",
+        "clientId": "PEGAR_CLIENT_ID",
+        "redirectUri": "https://magalarza726-del.github.io/SKC-facturas-borrador/",
+        "scopes": [
+          "openid",
+          "profile",
+          "offline_access",
+          "User.Read",
+          "Files.ReadWrite",
+          "Mail.Send"
+        ],
+        "driveFolder": "SKC Facturas",
+        "uploadEvidence": true,
+        "sendOutlook": false,
+        "notifyEmail": ""
+      },
+      "telegram": {
+        "enabled": false,
+        "mode": "proxy",
+        "proxyUrl": "",
+        "chatId": "",
+        "sendTransactions": true,
+        "sendTransfers": true
+      }
+    }
+  },
+  "catalogs": {
+    "id": "global",
+    "projects": [],
+    "costCenters": [
+      "Servicios",
+      "Viáticos",
+      "Administración"
+    ],
+    "secondaryCosts": [
+      "Insumos proyectos",
+      "Alimentación personal",
+      "Movilización personal",
+      "Honorarios proyectos"
+    ],
+    "evidenceStatuses": [
+      "Comprobante adjunto",
+      "Transferencia bancaria",
+      "Factura llegará por correo",
+      "Comprobante pendiente",
+      "Compra sin comprobante"
+    ],
+    "paymentMethods": [
+      "Efectivo",
+      "Transferencia",
+      "Tarjeta",
+      "Crédito",
+      "Otro"
+    ]
+  },
+  "users": [],
+  "sensitiveIncluded": false
+}

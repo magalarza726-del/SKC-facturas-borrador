@@ -1,1 +1,47 @@
-<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=./"><title>Redirigiendo…</title><p><a href="./">Abrir SKC Facturas</a></p>
+name: Deploy GitHub Pages
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate static files and modules
+        run: |
+          python web-tests/validate_static.py
+          find docs/assets -name '*.js' -print0 | xargs -0 -n1 node --check
+          node --check docs/sw.js
+      - name: Run configuration and Graph smoke tests
+        run: |
+          node web-tests/store-smoke.mjs
+          node web-tests/graph-smoke.mjs
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: docs
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
