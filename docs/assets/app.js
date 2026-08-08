@@ -11,6 +11,8 @@ import {renderFlow} from './pages/flow.js';
 import {renderHistory} from './pages/history.js';
 import {renderSettings} from './pages/settings.js';
 import {renderManual} from './pages/manual.js';
+import {graph} from './graph.js';
+import {officialExcel} from './excel-official.js';
 
 initializeViewMode();
 
@@ -43,7 +45,7 @@ function updateViewControls(){
 function updateChrome(){
   $('#desktopNav').innerHTML=navHtml();
   $('#mobileBottomNav').innerHTML=mobileNavHtml();
-  const opts=userOptions();$('#currentUserSelect').innerHTML=opts;$('#mobileCurrentUserSelect').innerHTML=opts;
+  const opts=userOptions(),locked=sync.isUserLocked(),desktopUser=$('#currentUserSelect'),mobileUser=$('#mobileCurrentUserSelect');desktopUser.innerHTML=opts;mobileUser.innerHTML=opts;desktopUser.disabled=locked;mobileUser.disabled=locked;desktopUser.title=locked?'Usuario vinculado al correo de Supabase':'';mobileUser.title=desktopUser.title;
   const mode=store.settings.sync?.provider==='supabase'?'Supabase':'local',last=store.settings.sync?.lastSyncAt;
   $('#footerStatus').textContent=mode==='Supabase'?`Modo Supabase${last?` · última sincronización ${new Date(last).toLocaleString('es-US')}`:''}`:'Datos locales del navegador';
   $('#mobileRecordCount').textContent=`Registros locales: ${store.state.transactions.length}`;
@@ -57,6 +59,12 @@ async function renderRoute(){
   const token=++renderToken;activeRoute=routeFromHash();updateChrome();
   const app=$('#app');app.innerHTML='<section class="loading-panel"><div class="spinner"></div><p>Cargando módulo…</p></section>';
   try{
+    if(sync.isConfigured()&&!sync.activeSession)await sync.session().catch(()=>null);
+    if(activeRoute!=='settings'&&sync.isUserLocked()&&!sync.hasBoundIdentity()){
+      app.innerHTML=`<section class="card"><div class="card-header"><h2>Vincule su identidad antes de operar</h2></div><div class="card-body"><div class="alert alert-warning">La sesión de Supabase está activa, pero su correo no coincide con ningún usuario activo de SKC. Esto evita registrar compras o transferencias con una identidad equivocada.</div><div class="form-actions"><button class="button" id="openIdentitySettings" type="button">Ir a Configuración</button></div></div></section>`;
+      $('#openIdentitySettings',app)?.addEventListener('click',()=>navigate('settings'));
+      return;
+    }
     await routes[activeRoute](app,navigate);
     if(token!==renderToken)return;
     $all('[data-go]',app).forEach(b=>{if(!b.dataset.goBound){b.dataset.goBound='1';b.addEventListener('click',()=>navigate(b.dataset.go))}});
@@ -70,7 +78,7 @@ async function manualSync(){
   const button=$('#syncButton');
   if(!sync.isConfigured()){toast('La aplicación está en modo local. Configure Supabase para compartir datos.','info');navigate('settings');return}
   button.disabled=true;button.textContent='Sincronizando…';
-  try{const r=await sync.syncNow();toast(`Recibidos: ${r.imported}. Enviados: ${r.sent}.`,'success','Sincronización completa');await renderRoute()}catch(e){toast(e.message,'error','No se pudo sincronizar')}finally{button.disabled=false;button.textContent='Sincronizar'}
+  try{const r=await sync.syncNow();if(r.errors?.length)toast(`Recibidos: ${r.imported}. Enviados: ${r.sent}. Errores: ${r.errors.length}.`,'info','Sincronización parcial');else toast(`Recibidos: ${r.imported}. Enviados: ${r.sent}.`,'success','Sincronización completa');await renderRoute()}catch(e){toast(e.message,'error','No se pudo sincronizar')}finally{button.disabled=false;button.textContent='Sincronizar'}
 }
 
 async function checkReminders(){
@@ -89,12 +97,13 @@ async function registerServiceWorker(){
   try{await navigator.serviceWorker.register('./sw.js',{scope:'./'})}catch(e){console.warn('Service worker no disponible:',e)}
 }
 
-async function changeUser(id){try{await store.setCurrentUser(id);await renderRoute()}catch(err){toast(err.message,'error');updateChrome()}}
+async function changeUser(id){try{if(sync.isUserLocked()&&id!==sync.boundUserId)throw new Error('La identidad está vinculada al correo de la sesión Supabase.');await store.setCurrentUser(id);await renderRoute()}catch(err){toast(err.message,'error');updateChrome()}}
 async function changeView(mode){applyViewMode(mode);await renderRoute()}
 
 async function bootstrap(){
   try{
     await store.initialize();
+    try{if(await graph.handleRedirectCallback())toast('Cuenta Microsoft conectada.','success','Microsoft Graph listo')}catch(err){console.warn(err);toast(err.message,'error','No se pudo completar Microsoft Graph')}
     updateChrome();
     $('#currentUserSelect').addEventListener('change',e=>changeUser(e.target.value));
     $('#mobileCurrentUserSelect').addEventListener('change',e=>changeUser(e.target.value));
@@ -105,14 +114,14 @@ async function bootstrap(){
     $('#mobileBackButton').addEventListener('click',()=>{if(history.length>1)history.back();else navigate('home')});
     window.addEventListener('hashchange',renderRoute);
     window.addEventListener('online',()=>{if(sync.isConfigured())sync.syncNow().then(renderRoute).catch(()=>{})});
-    sync.addEventListener('status',e=>{const b=$('#syncButton');if(!b)return;b.disabled=Boolean(e.detail?.running);b.textContent=e.detail?.running?'Sincronizando…':'Sincronizar';if(e.detail?.message)$('#footerStatus').textContent=e.detail.message});
+    sync.addEventListener('status',e=>{const detail=e.detail||{},b=$('#syncButton');if(b){b.disabled=Boolean(detail.running);b.textContent=detail.running?'Sincronizando…':'Sincronizar'}if(detail.message)$('#footerStatus').textContent=detail.message;if(detail.completed&&(Number(detail.imported||0)>0||Number(detail.sent||0)>0))officialExcel.autoUpload().catch(err=>console.warn('Excel oficial pendiente:',err))});
     sync.addEventListener('authchange',()=>updateChrome());
     store.addEventListener('settings',()=>{updateChrome();sync.startPolling()});
     sync.startPolling();
     await renderRoute();
     await checkReminders();reminderTimer=setInterval(checkReminders,60000);clockTimer=setInterval(updateClock,30000);
     await registerServiceWorker();
-    if(sync.isConfigured()&&navigator.onLine){const session=await sync.session().catch(()=>null);if(session)sync.syncNow().then(renderRoute).catch(e=>console.warn(e))}
+    if(sync.isConfigured()){const session=await sync.session().catch(()=>null);updateChrome();if(session&&navigator.onLine)sync.syncNow().then(renderRoute).catch(e=>console.warn(e))}
   }catch(e){
     console.error(e);$('#app').innerHTML=`<section class="card"><div class="card-header"><h2>No fue posible iniciar SKC Facturas</h2></div><div class="card-body"><div class="alert alert-error">${escapeHtml(e.message||String(e))}</div><p class="muted">Revise que el navegador permita IndexedDB y vuelva a cargar la página.</p></div></section>`;
   }

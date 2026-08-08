@@ -1,52 +1,47 @@
-from __future__ import annotations
-from contextlib import contextmanager
-from functools import partial
-from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
-from pathlib import Path
-import os, json
-from threading import Thread
-from playwright.sync_api import sync_playwright, expect
+# Cambios
 
-ROOT=Path(__file__).resolve().parents[1];DOCS=ROOT/'docs'
-class Quiet(SimpleHTTPRequestHandler):
-    def log_message(self,*_): pass
-@contextmanager
-def server():
-    h=partial(Quiet,directory=str(DOCS));s=ThreadingHTTPServer(('127.0.0.1',0),h);t=Thread(target=s.serve_forever,daemon=True);t.start()
-    try: yield f'http://127.0.0.1:{s.server_port}/#settings'
-    finally:s.shutdown();t.join(timeout=3)
+## 2.4.0 — Refactor y estabilidad
 
-with server() as url,sync_playwright() as p:
-    b=p.chromium.launch(headless=True,executable_path=os.environ.get('CHROMIUM_EXECUTABLE'),args=['--no-sandbox'])
-    c=b.new_context(viewport={'width':1440,'height':1050},accept_downloads=True);page=c.new_page();errors=[]
-    page.on('console',lambda m: errors.append(m.text) if m.type=='error' else None);page.on('pageerror',lambda e: errors.append(str(e)))
-    page.goto(url,wait_until='networkidle')
-    expect(page.get_by_role('button',name='Preparación')).to_be_visible()
-    page.get_by_role('button',name='Formularios').click()
-    expect(page.get_by_role('heading',name='Diseñador de formularios')).to_be_visible()
-    # Complete preset makes classification fields visible.
-    page.get_by_role('button',name='Mostrar todo').click();page.wait_for_timeout(150)
-    supplier_row=page.locator('[data-form-field="supplier"]');supplier_row.locator('[name="fieldLabel"]').fill('Proveedor / comercio')
-    supplier_row.get_by_role('button',name='Subir').click()
-    page.get_by_role('button',name='Guardar estructura').click();page.wait_for_timeout(150)
-    page.goto(url.split('#')[0]+'#invoice',wait_until='networkidle')
-    expect(page.locator('select[name="costCenter"]')).to_be_visible()
-    expect(page.get_by_text('Proveedor / comercio',exact=True)).to_be_visible()
-    assert page.locator('.field[data-config-field="supplier"]').evaluate('(el)=>[...el.parentElement.children].indexOf(el)') < page.locator('.field[data-config-field="client"]').evaluate('(el)=>[...el.parentElement.children].indexOf(el)')
-    # Return to simple preset.
-    page.goto(url,wait_until='networkidle');page.get_by_role('button',name='Formularios').click();page.get_by_role('button',name='Vista simple').click();page.wait_for_timeout(150)
-    page.goto(url.split('#')[0]+'#invoice',wait_until='networkidle')
-    expect(page.locator('select[name="costCenter"]')).to_be_hidden()
-    expect(page.locator('input[name="amount"]')).to_be_visible()
-    # Integration console exposes only public SPA values.
-    page.goto(url,wait_until='networkidle');page.get_by_role('button',name='Integraciones').click()
-    expect(page.get_by_role('heading',name='Microsoft Graph · configuración rápida')).to_be_visible()
-    redirect=page.locator('#microsoftIntegrationForm input[name="redirectUri"]').input_value();assert redirect.startswith(url.split('#')[0])
-    assert page.locator('input[name="clientSecret"]').count()==0
-    # Portable configuration download.
-    page.get_by_role('button',name='Reglas y respaldo').click()
-    with page.expect_download() as di: page.get_by_role('button',name='Exportar configuración JSON').click()
-    download=di.value;path=download.path();data=json.loads(Path(path).read_text());assert data['format']=='skc-app-configuration';assert data['schemaVersion']==1;assert 'forms' in data['settings'];assert 'integrations' in data['settings']
-    if errors: raise AssertionError('\n'.join(errors))
-    print('CONFIGURATION E2E OK')
-    b.close()
+- Se corrigió una fuga crítica del respaldo: las sesiones Supabase ya no exportan access/refresh tokens.
+- La sincronización respeta dependencias entre compras/transferencias y sus asientos contables para no publicar saldos sin documento fuente.
+- La revisión de un duplicado exacto ya no puede simularse escribiendo manualmente una frase en Observaciones; queda registrada como metadata estructurada.
+- Se persiste la Descripción base con ID y nombre legible; los catálogos ya no descartan silenciosamente descripciones sin Proyecto 2.
+- El Excel oficial se ajustó a la estructura A:Q (17 columnas) observada en el formato SKC y usa fecha `d/m/yyyy`.
+- Se añadió `appConfig` para sincronizar entre dispositivos el orden/visibilidad de formularios, reglas operativas y nombre de grupo.
+- Solo administradores pueden cambiar o importar configuración compartida.
+- Se normalizan URLs de Supabase aunque se pegue `/rest/v1/`, `/auth/v1/` o `/storage/v1/`.
+- Se rechazan Secret keys (`sb_secret_...`) en el frontend.
+- La descarga de eventos Supabase ahora usa paginación; se elimina el límite silencioso de 10.000 filas.
+- Las llamadas simultáneas a sincronización comparten una sola ejecución y el estado visual siempre se libera aun si falla la red.
+- Se impide operar con una sesión Supabase sin usuario interno vinculado cuando el bloqueo por correo está activado.
+- Se reforzó detección de duplicados por hash de cada evidencia individual.
+- Se corrigió la validación de evidencias obligatorias configurables en facturas y transferencias.
+- Se restringen archivos a PDF/JPEG/PNG/WEBP/GIF/HEIC/HEIF y máximo 20 MB.
+- Microsoft Graph limita URLs con bearer token al dominio oficial de Graph, expira PKCE y limpia callbacks fallidos.
+- `Mail.Send` ya no se solicita por defecto: solo se agrega al activar Outlook.
+- El Excel oficial se genera íntegramente en el navegador sin SheetJS/CDN y conserva encabezado azul, filtros, congelado y formatos monetarios.
+- La escritura del Excel oficial en OneDrive se reserva a administradores y exige una sincronización previa cuando corresponde.
+- Service worker actualizado a 2.4.0; el fallback de `index.html` solo se usa para navegación.
+- El esquema Supabase elimina DELETE para eventos/evidencias, añade integridad de `id/entity/payload` y habilita `appConfig`.
+- Se amplió GitHub Actions con smoke tests de archivos, datos, sincronización, Graph y Excel.
+
+## 2.3.0 — Integraciones y Excel oficial
+
+- Integraciones visibles desde Configuración.
+- Exportación a Excel oficial SKC.
+- Configuración y carga del Excel a OneDrive mediante Microsoft Graph.
+- Diseñador de formularios y configuración JSON portable.
+- Asistente Microsoft Graph con OAuth Authorization Code + PKCE.
+- Integración Telegram mediante proxy seguro / Supabase Edge Function.
+
+## 2.1.0 — Vista dual escritorio/móvil
+
+- Selector persistente entre modo Escritorio y modo Móvil.
+- Interfaz móvil para Inicio, Factura, Historial, Recordatorios, Mensajes, Flujo, Configuración y Manual.
+- Formularios y acciones comparten la misma base de datos y lógica en ambas vistas.
+
+## 2.0.0 — GitHub Pages
+
+- Versión web estática publicable desde `docs/`.
+- IndexedDB local y sincronización multiusuario opcional con Supabase.
+- PWA, historial, duplicados, recordatorios, mensajes, transferencias, flujo y conciliación.

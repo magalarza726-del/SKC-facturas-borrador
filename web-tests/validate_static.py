@@ -31,14 +31,33 @@ for icon in manifest.get('icons',[]):
     if not p.exists(): errors.append(f'Manifest icon missing: {icon["src"]}')
 
 sw=(docs/'sw.js').read_text(encoding='utf-8')
-for ref in re.findall(r"'((?:\./)[^']+)'",sw):
+cached=set(re.findall(r"'((?:\./)[^']+)'",sw))
+for ref in cached:
     if ref=='./': continue
     p=(docs/ref).resolve()
     if not p.exists(): errors.append(f'Service worker caches missing {ref}')
 
+# Every local JavaScript module must be precached so route changes and Excel export still work offline.
+for js in docs.rglob('*.js'):
+    if js.name=='sw.js': continue
+    rel='./'+js.relative_to(docs).as_posix()
+    if rel not in cached: errors.append(f'Service worker does not precache module {rel}')
+
+if "request.mode==='navigate'" not in sw:
+    errors.append('Service worker must limit index.html fallback to navigation requests')
+
 workflow=root/'.github/workflows/pages.yml'
 if not workflow.exists(): errors.append('Missing Pages workflow')
 elif 'path: docs' not in workflow.read_text(encoding='utf-8'): errors.append('Pages workflow does not upload docs')
+
+# Supabase schema must support shared configuration and must not grant DELETE to authenticated users.
+schema=(docs/'supabase-schema.sql').read_text(encoding='utf-8')
+if "'appConfig'" not in schema: errors.append('Supabase schema does not allow appConfig shared settings')
+if 'revoke delete on public.skc_events from authenticated' not in schema.lower(): errors.append('Supabase schema must revoke DELETE on skc_events')
+
+# CI should cover the file-validation smoke test introduced in 2.4.0.
+if workflow.exists() and 'files-smoke.mjs' not in workflow.read_text(encoding='utf-8'):
+    errors.append('Pages workflow does not run files-smoke.mjs')
 
 if errors:
     raise SystemExit('\n'.join(errors))

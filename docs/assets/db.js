@@ -1,5 +1,148 @@
-const DB_NAME='skc-facturas-web',DB_VERSION=1;
-const req=p=>new Promise((r,j)=>{p.onsuccess=()=>r(p.result);p.onerror=()=>j(p.error||new Error('Error de IndexedDB'))});
-const done=t=>new Promise((r,j)=>{t.oncomplete=r;t.onabort=()=>j(t.error);t.onerror=()=>j(t.error)});
-export class BrowserDatabase{constructor(){this.db=null}async open(){if(this.db)return this.db;const r=indexedDB.open(DB_NAME,DB_VERSION);r.onupgradeneeded=()=>{const d=r.result;if(!d.objectStoreNames.contains('entities')){const s=d.createObjectStore('entities',{keyPath:'key'});s.createIndex('type','type');s.createIndex('syncStatus','syncStatus')}if(!d.objectStoreNames.contains('files')){const s=d.createObjectStore('files',{keyPath:'id'});s.createIndex('entityKey','entityKey');s.createIndex('remotePath','remotePath')}if(!d.objectStoreNames.contains('meta'))d.createObjectStore('meta',{keyPath:'key'})};this.db=await req(r);this.db.onversionchange=()=>{this.db.close();this.db=null};return this.db}async putEntity(type,value){const d=await this.open(),t=d.transaction('entities','readwrite');t.objectStore('entities').put({key:`${type}:${value.id}`,type,syncStatus:value.syncStatus||'PENDIENTE',value:structuredClone(value)});await done(t);return value}async getEntity(type,id){const d=await this.open(),t=d.transaction('entities','readonly'),x=await req(t.objectStore('entities').get(`${type}:${id}`));return x?structuredClone(x.value):null}async getAll(type){const d=await this.open(),t=d.transaction('entities','readonly'),rows=await req(t.objectStore('entities').index('type').getAll(type));return rows.map(x=>structuredClone(x.value))}async getAllEntities(){const d=await this.open(),t=d.transaction('entities','readonly'),rows=await req(t.objectStore('entities').getAll());return rows.map(x=>({type:x.type,value:structuredClone(x.value)}))}async putFile(x){const d=await this.open(),t=d.transaction('files','readwrite');t.objectStore('files').put(x);await done(t)}async putFiles(xs){if(!xs.length)return;const d=await this.open(),t=d.transaction('files','readwrite'),s=t.objectStore('files');xs.forEach(x=>s.put(x));await done(t)}async getFile(id){const d=await this.open(),t=d.transaction('files','readonly');return req(t.objectStore('files').get(id))}async getAllFiles(){const d=await this.open(),t=d.transaction('files','readonly');return req(t.objectStore('files').getAll())}async setMeta(key,value){const d=await this.open(),t=d.transaction('meta','readwrite');t.objectStore('meta').put({key,value:structuredClone(value)});await done(t)}async getMeta(key,fallback=null){const d=await this.open(),t=d.transaction('meta','readonly'),x=await req(t.objectStore('meta').get(key));return x?structuredClone(x.value):fallback}async getAllMeta(){const d=await this.open(),t=d.transaction('meta','readonly'),rows=await req(t.objectStore('meta').getAll());return Object.fromEntries(rows.map(x=>[x.key,structuredClone(x.value)]))}async clearAll(){const d=await this.open(),t=d.transaction(['entities','files','meta'],'readwrite');['entities','files','meta'].forEach(n=>t.objectStore(n).clear());await done(t)}}
-export const db=new BrowserDatabase();
+const DB_NAME = 'skc-facturas-web';
+const DB_VERSION = 1;
+
+function requestResult(request) {
+  return new Promise((resolve, reject) => {
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error || new Error('Error de IndexedDB'));
+  });
+}
+
+function transactionDone(transaction) {
+  return new Promise((resolve, reject) => {
+    transaction.oncomplete = resolve;
+    transaction.onabort = () => reject(transaction.error || new Error('La transacción de IndexedDB fue cancelada.'));
+    transaction.onerror = () => reject(transaction.error || new Error('Error en la transacción de IndexedDB.'));
+  });
+}
+
+export class BrowserDatabase {
+  constructor() {
+    this.db = null;
+  }
+
+  async open() {
+    if (this.db) return this.db;
+
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    request.onupgradeneeded = () => {
+      const database = request.result;
+
+      if (!database.objectStoreNames.contains('entities')) {
+        const store = database.createObjectStore('entities', { keyPath: 'key' });
+        store.createIndex('type', 'type');
+        store.createIndex('syncStatus', 'syncStatus');
+      }
+
+      if (!database.objectStoreNames.contains('files')) {
+        const store = database.createObjectStore('files', { keyPath: 'id' });
+        store.createIndex('entityKey', 'entityKey');
+        store.createIndex('remotePath', 'remotePath');
+      }
+
+      if (!database.objectStoreNames.contains('meta')) {
+        database.createObjectStore('meta', { keyPath: 'key' });
+      }
+    };
+
+    this.db = await requestResult(request);
+    this.db.onversionchange = () => {
+      this.db?.close();
+      this.db = null;
+    };
+    return this.db;
+  }
+
+  async putEntity(type, value) {
+    const database = await this.open();
+    const transaction = database.transaction('entities', 'readwrite');
+    transaction.objectStore('entities').put({
+      key: `${type}:${value.id}`,
+      type,
+      syncStatus: value.syncStatus || 'PENDIENTE',
+      value: structuredClone(value),
+    });
+    await transactionDone(transaction);
+    return value;
+  }
+
+  async getEntity(type, id) {
+    const database = await this.open();
+    const transaction = database.transaction('entities', 'readonly');
+    const row = await requestResult(transaction.objectStore('entities').get(`${type}:${id}`));
+    return row ? structuredClone(row.value) : null;
+  }
+
+  async getAll(type) {
+    const database = await this.open();
+    const transaction = database.transaction('entities', 'readonly');
+    const rows = await requestResult(transaction.objectStore('entities').index('type').getAll(type));
+    return rows.map(row => structuredClone(row.value));
+  }
+
+  async getAllEntities() {
+    const database = await this.open();
+    const transaction = database.transaction('entities', 'readonly');
+    const rows = await requestResult(transaction.objectStore('entities').getAll());
+    return rows.map(row => ({ type: row.type, value: structuredClone(row.value) }));
+  }
+
+  async putFile(file) {
+    const database = await this.open();
+    const transaction = database.transaction('files', 'readwrite');
+    transaction.objectStore('files').put(file);
+    await transactionDone(transaction);
+  }
+
+  async putFiles(files) {
+    if (!files.length) return;
+    const database = await this.open();
+    const transaction = database.transaction('files', 'readwrite');
+    const store = transaction.objectStore('files');
+    for (const file of files) store.put(file);
+    await transactionDone(transaction);
+  }
+
+  async getFile(id) {
+    const database = await this.open();
+    const transaction = database.transaction('files', 'readonly');
+    return requestResult(transaction.objectStore('files').get(id));
+  }
+
+  async getAllFiles() {
+    const database = await this.open();
+    const transaction = database.transaction('files', 'readonly');
+    return requestResult(transaction.objectStore('files').getAll());
+  }
+
+  async setMeta(key, value) {
+    const database = await this.open();
+    const transaction = database.transaction('meta', 'readwrite');
+    transaction.objectStore('meta').put({ key, value: structuredClone(value) });
+    await transactionDone(transaction);
+  }
+
+  async getMeta(key, fallback = null) {
+    const database = await this.open();
+    const transaction = database.transaction('meta', 'readonly');
+    const row = await requestResult(transaction.objectStore('meta').get(key));
+    return row ? structuredClone(row.value) : fallback;
+  }
+
+  async getAllMeta() {
+    const database = await this.open();
+    const transaction = database.transaction('meta', 'readonly');
+    const rows = await requestResult(transaction.objectStore('meta').getAll());
+    return Object.fromEntries(rows.map(row => [row.key, structuredClone(row.value)]));
+  }
+
+  async clearAll() {
+    const database = await this.open();
+    const names = ['entities', 'files', 'meta'];
+    const transaction = database.transaction(names, 'readwrite');
+    for (const name of names) transaction.objectStore(name).clear();
+    await transactionDone(transaction);
+  }
+}
+
+export const db = new BrowserDatabase();

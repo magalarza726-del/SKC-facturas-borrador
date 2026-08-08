@@ -1,4 +1,4 @@
--- SKC Facturas Web 2.1.0
+-- SKC Facturas Web 2.4.0
 -- Ejecute este archivo en Supabase SQL Editor.
 -- La aplicación usa únicamente usuarios autenticados y una anon/public key.
 
@@ -6,7 +6,7 @@ create extension if not exists pgcrypto;
 
 create table if not exists public.skc_events (
   id text primary key,
-  entity_type text not null check (entity_type in ('users','catalogs','transactions','reminders','messages','ledger','audit')),
+  entity_type text not null check (entity_type in ('users','catalogs','appConfig','transactions','reminders','messages','ledger','audit')),
   entity_id text not null,
   payload jsonb not null,
   updated_at timestamptz not null default now(),
@@ -17,6 +17,18 @@ create table if not exists public.skc_events (
 create index if not exists skc_events_updated_at_idx on public.skc_events(updated_at);
 create index if not exists skc_events_type_idx on public.skc_events(entity_type, updated_at);
 create unique index if not exists skc_events_type_entity_idx on public.skc_events(entity_type, entity_id);
+
+-- Migración idempotente: 2.4.0 añade configuración compartida de formularios/reglas.
+alter table public.skc_events drop constraint if exists skc_events_entity_type_check;
+alter table public.skc_events add constraint skc_events_entity_type_check
+  check (entity_type in ('users','catalogs','appConfig','transactions','reminders','messages','ledger','audit')) not valid;
+alter table public.skc_events validate constraint skc_events_entity_type_check;
+
+-- Integridad mínima del Event Store: la llave compuesta debe coincidir con el payload.
+alter table public.skc_events drop constraint if exists skc_events_identity_consistency;
+alter table public.skc_events add constraint skc_events_identity_consistency
+  check (id = entity_type || ':' || entity_id and payload->>'id' = entity_id) not valid;
+alter table public.skc_events validate constraint skc_events_identity_consistency;
 
 create or replace function public.skc_keep_newest_event()
 returns trigger
@@ -40,7 +52,8 @@ for each row execute function public.skc_keep_newest_event();
 
 alter table public.skc_events enable row level security;
 revoke all on public.skc_events from anon;
-grant select, insert, update, delete on public.skc_events to authenticated;
+grant select, insert, update on public.skc_events to authenticated;
+revoke delete on public.skc_events from authenticated;
 
 drop policy if exists "skc authenticated read" on public.skc_events;
 create policy "skc authenticated read" on public.skc_events for select to authenticated using (true);
@@ -49,7 +62,6 @@ create policy "skc authenticated insert" on public.skc_events for insert to auth
 drop policy if exists "skc authenticated update" on public.skc_events;
 create policy "skc authenticated update" on public.skc_events for update to authenticated using (true) with check (true);
 drop policy if exists "skc authenticated delete" on public.skc_events;
-create policy "skc authenticated delete" on public.skc_events for delete to authenticated using (true);
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values (
@@ -73,4 +85,3 @@ create policy "skc evidence insert" on storage.objects for insert to authenticat
 drop policy if exists "skc evidence update" on storage.objects;
 create policy "skc evidence update" on storage.objects for update to authenticated using (bucket_id='skc-evidence') with check (bucket_id='skc-evidence');
 drop policy if exists "skc evidence delete" on storage.objects;
-create policy "skc evidence delete" on storage.objects for delete to authenticated using (bucket_id='skc-evidence');

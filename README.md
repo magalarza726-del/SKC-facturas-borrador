@@ -1,57 +1,26 @@
-<!doctype html>
-<html lang="es">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#075fb5">
-  <meta name="description" content="SKC Facturas: registro de compras, mensajes, recordatorios y flujo de saldos.">
-  <title>SKC Ingeniería · Facturas</title>
-  <link rel="manifest" href="./manifest.webmanifest">
-  <link rel="icon" href="./icons/icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./assets/styles.css">
-</head>
-<body>
-  <noscript>SKC Facturas necesita JavaScript para funcionar.</noscript>
-  <div id="shell" class="shell">
-    <header class="topbar desktop-chrome">
-      <a class="brand" href="#home" aria-label="Ir al inicio">
-        <span class="brand-mark" aria-hidden="true">SKC</span>
-        <span><strong>SKC Ingeniería</strong><small>Facturas</small></span>
-      </a>
-      <nav id="desktopNav" class="desktop-nav" aria-label="Navegación principal"></nav>
-      <div class="topbar-actions">
-        <label class="user-switcher"><span>Usuario</span><select id="currentUserSelect" aria-label="Usuario actual"></select></label>
-        <button id="syncButton" class="button button-secondary button-compact" type="button">Sincronizar</button>
-        <div class="view-switch" role="group" aria-label="Modo de visualización">
-          <button id="desktopViewButton" class="view-switch-button" type="button" aria-label="Ver modo escritorio">▣ <span>Escritorio</span></button>
-          <button id="mobileViewButton" class="view-switch-button" type="button" aria-label="Ver modo móvil">▯ <span>Móvil</span></button>
-        </div>
-      </div>
-    </header>
+# SKC Facturas Web 2.4.0
 
-    <header class="mobile-app-header mobile-chrome">
-      <div class="mobile-statusbar" aria-hidden="true"><strong id="mobileClock">9:41</strong><span>▮▮▮ ))) ▰</span></div>
-      <div class="mobile-appbar">
-        <button id="mobileBackButton" class="mobile-back" type="button" aria-label="Volver">‹</button>
-        <a class="mobile-brand" href="#home" aria-label="Ir al inicio"><span class="mobile-logo">SKC</span></a>
-        <strong id="mobilePageTitle" class="mobile-page-title">SKC Ingeniería · Facturas</strong>
-        <button id="mobileViewToggle" class="mobile-header-action" type="button" aria-label="Cambiar a modo escritorio" title="Cambiar vista">▣</button>
-      </div>
-      <div class="mobile-userbar">
-        <span class="mobile-avatar" aria-hidden="true">●</span>
-        <label class="mobile-user-select"><span class="sr-only">Usuario actual</span><select id="mobileCurrentUserSelect" aria-label="Usuario actual"></select></label>
-        <span class="mobile-record-count" id="mobileRecordCount">Registros locales: 0</span>
-        <span class="mobile-online"><i></i> En línea</span>
-      </div>
-    </header>
+Versión refactorizada y endurecida para el piloto multiusuario de SKC. Mantiene la interfaz **Escritorio/Móvil**, IndexedDB local, sincronización con Supabase, flujo contable, transferencias, recordatorios, detección de duplicados, evidencias, Microsoft Graph, Telegram y el Excel oficial SKC.
 
-    <main id="app" class="app" tabindex="-1"><section class="loading-panel"><div class="spinner"></div><p>Preparando SKC Facturas…</p></section></main>
+## Novedades de estabilidad 2.4.0
 
-    <nav id="mobileBottomNav" class="mobile-bottom-nav mobile-chrome" aria-label="Navegación móvil"></nav>
-    <footer class="footer desktop-chrome"><span id="footerStatus">Datos locales del navegador</span><span>Versión web 2.2.0 · Configurable y adaptable</span></footer>
-  </div>
-  <div id="toastRegion" class="toast-region" aria-live="polite" aria-atomic="true"></div>
-  <div id="modalRoot"></div>
-  <script type="module" src="./assets/app.js"></script>
-</body>
-</html>
+- Formularios y reglas administrativas se sincronizan entre dispositivos mediante `appConfig`.
+- Respaldo endurecido: no exporta sesiones Supabase ni secretos heredados.
+- Dependencias de sincronización protegen el libro contable cuando falla el documento fuente.
+- Sincronización Supabase paginada, coalescida y con recuperación correcta de estado ante errores.
+- URL de Supabase normalizada y bloqueo explícito de Secret keys en el navegador.
+- Vinculación obligatoria entre sesión Supabase y usuario interno cuando está activado el bloqueo por correo.
+- Validaciones de archivos, hashes individuales de evidencias y campos configurables obligatorios reforzadas.
+- Microsoft Graph usa permisos mínimos; `Mail.Send` solo se solicita cuando Outlook está activado.
+- Generador XLSX local, sin CDN, con estructura oficial SKC A:Q (17 columnas), fecha `d/m/yyyy` y funcionamiento offline.
+- Excel oficial en OneDrive restringido a administradores para reducir sobrescrituras concurrentes.
+- Service worker actualizado y seguro: el fallback HTML solo se aplica a navegación, no a módulos JavaScript.
+- Esquema Supabase sin borrado de eventos y con restricciones de integridad.
+
+## Publicación
+
+El contenido publicable está en `docs/`. El workflow `.github/workflows/pages.yml` valida código, almacenamiento, archivos, sincronización, Graph y Excel antes de desplegar.
+
+Para una base real compartida, ejecute o vuelva a ejecutar `docs/supabase-schema.sql` en Supabase SQL Editor. La migración es idempotente y añade el tipo `appConfig` requerido por la configuración compartida.
+
+Documentos clave: `LAUNCH_CHECKLIST.md`, `SUPABASE_SETUP_10_MIN.md`, `GRAPH_SETUP_10_MIN.md`, `TELEGRAM_SETUP.md`, `ANDROID_NATIVE_READINESS.md` y `BUGFIX_REPORT_2.4.0.md`.

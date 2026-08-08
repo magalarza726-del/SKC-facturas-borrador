@@ -1,27 +1,56 @@
-# Preparación para Android nativo
+VALIDACIÓN DEL PROYECTO — SKC FACTURAS WEB 2.4.0
+================================================
+Fecha: 7 ago 2026
 
-La versión 2.2.0 separa configuración, formularios e integraciones de la interfaz. Esto permite reutilizar el mismo contrato JSON en una futura APK.
+RESULTADO
+---------
+APROBADO para continuar el piloto controlado, sujeto a las notas de seguridad y a ejecutar la migración Supabase 2.4.0.
 
-## Contratos reutilizables
+PRUEBAS AUTOMATIZADAS EJECUTADAS
+--------------------------------
+- Sintaxis de todos los módulos JavaScript y service worker: APROBADA.
+- Validación estática de index, imports ES Modules, manifest, rutas de GitHub Pages y archivos cacheados: APROBADA.
+- IndexedDB, usuarios, saldos iniciales, compras, libro contable, mensajes y recordatorios: APROBADA.
+- Catálogos: conserva descripciones aunque todavía no tengan Proyecto 2: APROBADA.
+- Persistencia de Descripción base por ID + nombre legible: APROBADA.
+- Duplicados por proveedor/factura y SHA-256 de cada evidencia: APROBADA.
+- Rechazo de bypass de duplicado mediante texto manual y revisión estructurada con justificación: APROBADA.
+- Campos configurables obligatorios, incluida evidencia: APROBADA.
+- Respaldo sin tokens de Supabase y combinación sin sobrescribir conexión del dispositivo: APROBADA.
+- Configuración portable sin identidad/estado local y rechazo de Supabase Secret key: APROBADA.
+- Vinculación dinámica de sesión Supabase por correo: APROBADA.
+- Configuración compartida `appConfig`: APROBADA.
+- Paginación de sincronización con 1.001 eventos: APROBADA (2 páginas).
+- Liberación de estado tras fallo y coalescencia de sincronizaciones: APROBADA.
+- Dependencias de sincronización: no se publica ledger si falla su transaction/message fuente: APROBADA.
+- Archivos PDF/imágenes, tamaño, SHA-256 y rechazo de formatos inválidos/vacíos: APROBADA.
+- Microsoft Graph PKCE, scopes mínimos, bloqueo de origen externo y refresh: APROBADA.
+- Creación de carpetas y carga a OneDrive con servidor simulado: APROBADA.
+- Escritor XLSX sin CDN: APROBADO.
+- Excel oficial A:Q, 17 columnas, semana/mes, categoría Alim, fecha d/m/yyyy, filtros, freeze A2 y formato monetario: APROBADO.
+- Archivo de ejemplo abierto e inspeccionado como XLSX válido: APROBADO.
 
-- `docs/app-config.schema.json`: esquema de configuración portable.
-- `docs/assets/form-config.js`: catálogo de campos, visibilidad, obligatoriedad, valores por defecto y orden.
-- `docs/assets/graph.js`: contrato OAuth/Graph para OneDrive y Outlook.
-- `docs/assets/integrations.js`: eventos de negocio posteriores al guardado.
-- `supabase/functions/telegram/index.ts`: proxy seguro para Telegram.
+PRUEBAS REALES YA CONFIRMADAS DURANTE EL PILOTO
+-----------------------------------------------
+- Escritura real en Supabase: confirmada.
+- Lectura del mismo movimiento desde un segundo navegador: confirmada.
+- Escrituras casi simultáneas desde dos navegadores sin perder registros: confirmadas.
+- Transferencia confirmada reflejada en el flujo y sincronizada: confirmada.
 
-## En Android
+LIMITACIÓN DEL ENTORNO DE VALIDACIÓN
+------------------------------------
+El Chromium disponible en este entorno bloquea páginas locales/localhost por política administrativa, por lo que no fue posible repetir aquí la navegación E2E visual completa de 2.4.0. Los módulos y contratos funcionales sí fueron ejercitados con Node/Python, y la aplicación ya ha sido probada por el usuario en GitHub Pages + Supabase real.
 
-- Tenant ID y Client ID pueden importarse desde JSON porque no son secretos.
-- Tokens OAuth deben guardarse en Android Keystore/EncryptedSharedPreferences.
-- El token de Telegram debe permanecer en un backend o Edge Function, no dentro del APK.
-- La base multiusuario puede continuar en Supabase o migrarse a una API propia sin cambiar el formato de los formularios.
-- El APK debe implementar el mismo `schemaVersion: 1` al importar/exportar configuración.
+SEGURIDAD / PRODUCCIÓN
+----------------------
+Las RLS actuales permiten trabajo colaborativo a cualquier usuario autenticado del proyecto. Los roles internos de la UI todavía no son autorización de servidor. Adecuado para piloto cerrado; antes de producción se debe endurecer RLS por rol/tenant.
 
-## Lo que no debe exportarse
-
-- Tokens de sesión.
-- Client secrets.
-- Service-role keys.
-- Token del bot de Telegram.
-- Facturas o evidencias dentro del archivo de configuración. Esos datos pertenecen al respaldo operativo, no a la configuración.
+PASOS ANTES DE DESPLEGAR
+------------------------
+1. Ejecutar de nuevo docs/supabase-schema.sql en el Supabase existente.
+2. Subir docs/ 2.4.0 a GitHub Pages y limpiar service worker/cache anterior.
+3. Renombrar o desactivar Usuario Demo y verificar correo vinculado de cada usuario.
+4. Hacer prueba de evidencia desde dos navegadores.
+5. Hacer prueba de duplicado exacto + justificación.
+6. Habilitar actualización automática del Excel solo en un equipo ADMIN designado.
+7. Descargar respaldo previo al piloto.

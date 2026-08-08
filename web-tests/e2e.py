@@ -43,6 +43,7 @@ with static_server() as url, sync_playwright() as p:
 
     page.locator('a[href="#settings"]').first.click()
     expect(page.get_by_role('heading', name='Configuración')).to_be_visible()
+    page.get_by_role('button', name='Usuarios', exact=True).click()
     page.get_by_role('button', name='Agregar usuario').first.click()
     modal = page.locator('.modal')
     modal.locator('input[name="name"]').fill('Karen')
@@ -58,8 +59,6 @@ with static_server() as url, sync_playwright() as p:
     form.locator('select[name="evidenceStatus"]').select_option(label='Compra sin comprobante')
     form.locator('#descriptionId').select_option(index=1)
     form.locator('select[name="project"]').select_option(index=1)
-    form.locator('select[name="costCenter"]').select_option(index=1)
-    form.locator('select[name="secondaryCost"]').select_option(index=1)
     form.get_by_role('button', name='Guardar y publicar').click()
     expect(page.get_by_text('Registro creado')).to_be_visible()
     expect(page.locator('tbody').filter(has_text='SKC-').first).to_be_visible()

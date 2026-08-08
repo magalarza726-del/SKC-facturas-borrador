@@ -95,3 +95,7 @@ html[data-view-mode="mobile"] .page-header{display:none}
   html[data-view-mode="mobile"] .mobile-reminder-actions{margin-left:0}
   html[data-view-mode="mobile"] .mobile-summary-item{grid-template-columns:1fr;text-align:center}.mobile-summary-item .summary-icon{margin:auto}
 }
+
+/* 2.2.0 configurable forms and integration console */
+.config-field-hidden{display:none!important}#formLayoutRows input[type=text],#formLayoutRows input:not([type]){min-width:180px}#formLayoutRows td:first-child{white-space:nowrap}.integration-status{display:flex;align-items:center;gap:8px}.tabs{overflow-x:auto;scrollbar-width:thin}.tabs .tab{flex:0 0 auto}@media(max-width:620px){#formLayoutRows{min-width:760px}.card-body>.form-grid{grid-template-columns:1fr}.card-body>.form-grid>.field{grid-column:1!important}}
+.mobile-config-list{display:grid;gap:10px;margin-top:14px}.mobile-config-field{padding:12px;border:1px solid var(--line);border-radius:12px;background:#fbfdff}.mobile-config-head{display:flex;align-items:center;gap:8px;justify-content:space-between;margin-bottom:10px}.mobile-config-head>span:first-child{min-width:0;flex:1}.mobile-config-head strong,.mobile-config-head small{display:block}.mobile-config-head small{color:var(--muted);margin-top:2px}.mobile-config-options{display:flex;gap:16px;flex-wrap:wrap;margin:10px 0}.mobile-config-options label{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700}

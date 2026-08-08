@@ -31,7 +31,7 @@ with server() as url,sync_playwright() as p:
     expect(page.get_by_text('Karen',exact=True).first).to_be_visible()
     # Mobile invoice form.
     page.goto(url.split('#')[0]+'#invoice',wait_until='networkidle')
-    f=page.locator('#invoiceForm');f.locator('input[name="amount"]').fill('12.50');f.locator('#descriptionId').select_option(index=1);f.locator('select[name="project"]').select_option(index=1);f.locator('details summary').click();f.locator('select[name="costCenter"]').select_option(index=1);f.locator('select[name="secondaryCost"]').select_option(index=1);f.locator('#noReceiptSwitch').locator('xpath=..').click();f.get_by_role('button',name='Guardar y enviar').click()
+    f=page.locator('#invoiceForm');f.locator('input[name="amount"]').fill('12.50');f.locator('#descriptionId').select_option(index=1);f.locator('select[name="project"]').select_option(index=1);f.locator('#noReceiptSwitch').locator('xpath=..').click();f.get_by_role('button',name='Guardar y enviar').click()
     expect(page.get_by_text('Registro creado')).to_be_visible()
     # Reminder create and postpone.
     page.goto(url.split('#')[0]+'#reminders',wait_until='networkidle');page.locator('#mobileAddReminder').click();modal=page.locator('.modal');modal.locator('textarea').fill('Almuerzo proyecto RE-S11.01');modal.get_by_role('button',name='Crear recordatorio').click();expect(page.get_by_text('Almuerzo proyecto RE-S11.01')).to_be_visible();page.get_by_role('button',name='Posponer',exact=False).first.click();modal=page.locator('.modal');modal.locator('input').fill('90');modal.get_by_role('button',name='Posponer').click();expect(page.get_by_text('Recordatorio pospuesto.')).to_be_visible()
