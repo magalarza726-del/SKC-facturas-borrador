@@ -1,2 +1,1 @@
-SKC Facturas GitHub Pages 2.4.0
-Refactor de estabilidad, configuración compartida, sincronización reforzada y Excel oficial offline.
+SKC Facturas GitHub Pages 2.5.0

@@ -87,6 +87,22 @@ export class BrowserDatabase {
     return rows.map(row => ({ type: row.type, value: structuredClone(row.value) }));
   }
 
+  async deleteEntity(type, id) {
+    const database = await this.open();
+    const transaction = database.transaction('entities', 'readwrite');
+    transaction.objectStore('entities').delete(`${type}:${id}`);
+    await transactionDone(transaction);
+  }
+
+  async deleteFilesByEntity(entityKey) {
+    const database = await this.open();
+    const transaction = database.transaction('files', 'readwrite');
+    const store = transaction.objectStore('files');
+    const rows = await requestResult(store.index('entityKey').getAll(entityKey));
+    for (const row of rows) store.delete(row.id);
+    await transactionDone(transaction);
+  }
+
   async putFile(file) {
     const database = await this.open();
     const transaction = database.transaction('files', 'readwrite');

@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+const root=new URL('../docs/',import.meta.url);
+const app=await readFile(new URL('assets/app.js',root),'utf8');
+const history=await readFile(new URL('assets/pages/history.js',root),'utf8');
+const home=await readFile(new URL('assets/pages/home.js',root),'utf8');
+assert.equal(/renderManual|\bmanual:\s*render/i.test(app),false);
+assert.equal(/Manual/.test(home),false);
+assert.match(history,/Ver evidencia/);
+assert.match(history,/Descargar evidencia/);
+assert.match(history,/data-evidence-prev/);
+assert.match(history,/data-evidence-next/);
+assert.match(app,/canManageAdministration/);
+console.log('STATIC ROLE + EVIDENCE UI SMOKE OK');

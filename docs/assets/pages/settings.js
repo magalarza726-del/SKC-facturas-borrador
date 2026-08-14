@@ -20,12 +20,12 @@ function userRows(){
     <td>${badge(u.transferEnabled?'HABILITADO':'BLOQUEADO')}</td>
     <td>${money(u.initialBalance||0)}</td>
     <td>${badge(u.active===false?'INACTIVO':'ACTIVO')}</td>
-    <td>${store.isAdmin()?`<button type="button" class="button button-secondary button-compact" data-edit-user="${u.id}">Editar</button>`:'—'}</td>
+    <td>${store.canManageAdministration()?`<button type="button" class="button button-secondary button-compact" data-edit-user="${u.id}">Editar</button>`:'—'}</td>
   </tr>`).join(''):'<tr><td colspan="6" class="empty-state">No hay usuarios.</td></tr>';
 }
 
 async function editUser(user=null){
-  if(!store.isAdmin())throw new Error('Solo un administrador puede modificar usuarios.');
+  if(!store.canManageAdministration())throw new Error('Solo un administrador puede modificar usuarios.');
   const u=user||{name:'',email:'',role:'USUARIO',transferEnabled:false,initialBalance:0,active:true};
   return showModal({
     title:user?'Editar usuario':'Agregar usuario',
@@ -48,24 +48,25 @@ async function editUser(user=null){
 
 
 function renderSetup(session){
-  const realUsers=store.users(true).filter(u=>u.id!=='usuario-demo'&&!/usuario demo/i.test(u.name)).length,cat=store.catalogs(),syncReady=store.settings.sync?.provider==='supabase'&&store.settings.sync?.supabaseUrl&&store.settings.sync?.anonKey,identityReady=store.settings.sync?.lockUserToEmail===false||sync.hasBoundIdentity(),graphReady=graph.isConfigured()&&graph.isConnected();
+  const realUsers=store.users(true).length,cat=store.catalogs(),syncReady=store.settings.sync?.provider==='supabase'&&store.settings.sync?.supabaseUrl&&store.settings.sync?.anonKey,identityReady=store.settings.sync?.lockUserToEmail===false||sync.hasBoundIdentity(),graphReady=graph.isConfigured()&&graph.isConnected(),adminReady=store.hasAdmin();
   const steps=[
-    ['users','Usuarios reales',realUsers>0,realUsers?`${realUsers} usuario(s) real(es) configurado(s)`:'Reemplace Usuario Demo y configure saldos iniciales.'],
+    ['users','Usuarios y administrador',realUsers>0&&adminReady,realUsers?`${realUsers} usuario(s) · ${adminReady?'administrador asignado':'falta asignar administrador'}`:'Configure los usuarios reales.'],
     ['catalogs','Proyectos y catálogos',(cat.projects||[]).length>0,`${(cat.projects||[]).length} descripción(es) disponible(s)`],
     ['forms','Formulario simple',Array.isArray(store.settings.forms?.invoice),'Decida qué campos verá el personal en el piloto.'],
     ['sync','Base multiusuario',Boolean(syncReady&&session&&identityReady),syncReady?(session?(identityReady?'Supabase conectado e identidad vinculada':'El correo de Supabase no coincide con un usuario activo'):'Falta iniciar sesión en Supabase'):'Faltan URL, anon key y esquema SQL.'],
-    ['integrations','Microsoft Graph',graphReady,graph.isConfigured()?(graph.isConnected()?'Cuenta Microsoft conectada':'Falta conectar la cuenta'):'Opcional: configure Tenant ID y Client ID.'],
+    ['integrations','Evidencias privadas',Boolean(syncReady&&session),syncReady&&session?'Supabase Storage guarda fotos y PDFs en skc-evidence.':'Se habilita al conectar Supabase.'],
+    ['integrations','Microsoft Graph',graphReady,graph.isConfigured()?(graph.isConnected()?'Cuenta Microsoft conectada':'Falta conectar la cuenta'):'Opcional; no es necesario para evidencias.'],
     ['rules','Respaldo inicial',Boolean(store.settings.pilot?.lastBackupAt),store.settings.pilot?.lastBackupAt?`Último respaldo: ${dateLabel(store.settings.pilot.lastBackupAt,true)}`:'Descargue un respaldo antes de comenzar las pruebas reales.']
   ];
-  const requiredReady=steps.slice(0,4).every(x=>x[2]);
-  return `<section class="stack"><div class="alert ${requiredReady?'alert-success':'alert-warning'}"><strong>${requiredReady?'La configuración mínima está lista para el piloto.':'Complete los pasos obligatorios antes de usar facturas reales.'}</strong><br><span class="small">Microsoft y Telegram son opcionales para el primer día; la base multiusuario no lo es.</span></div><section class="grid grid-2">${steps.map(([target,title,ok,detail],i)=>`<article class="card"><div class="card-header"><div><h2>${i+1}. ${escapeHtml(title)}</h2><span class="small muted">${escapeHtml(detail)}</span></div>${badge(ok?'LISTO':target==='integrations'?'OPCIONAL':'PENDIENTE')}</div><div class="card-body"><button class="button ${ok?'button-secondary':''}" type="button" data-open-settings="${target}">${ok?'Revisar':'Configurar'}</button></div></article>`).join('')}</section><div class="form-actions" style="justify-content:flex-start"><a class="button button-secondary" href="./LAUNCH_CHECKLIST.md" target="_blank" rel="noopener">Ver lista de lanzamiento</a><a class="button button-secondary" href="./GRAPH_SETUP_10_MIN.md" target="_blank" rel="noopener">Guía Microsoft Graph</a><a class="button button-secondary" href="./SUPABASE_SETUP_10_MIN.md" target="_blank" rel="noopener">Guía base real</a></div></section>`;
+  const requiredReady=steps.slice(0,5).every(x=>x[2]);
+  return `<section class="stack"><div class="alert ${requiredReady?'alert-success':'alert-warning'}"><strong>${requiredReady?'La configuración mínima está lista para el piloto.':'Complete los pasos obligatorios antes de usar facturas reales.'}</strong><br><span class="small">Las evidencias se guardan en Supabase. Microsoft y Telegram son opcionales.</span></div><section class="grid grid-2">${steps.map(([target,title,ok,detail],i)=>`<article class="card"><div class="card-header"><div><h2>${i+1}. ${escapeHtml(title)}</h2><span class="small muted">${escapeHtml(detail)}</span></div>${badge(ok?'LISTO':target==='integrations'?'OPCIONAL':'PENDIENTE')}</div><div class="card-body"><button class="button ${ok?'button-secondary':''}" type="button" data-open-settings="${target}">${ok?'Revisar':'Configurar'}</button></div></article>`).join('')}</section><div class="form-actions" style="justify-content:flex-start"><a class="button button-secondary" href="./LAUNCH_CHECKLIST.md" target="_blank" rel="noopener">Ver lista de lanzamiento</a><a class="button button-secondary" href="./GRAPH_SETUP_10_MIN.md" target="_blank" rel="noopener">Guía Microsoft Graph</a><a class="button button-secondary" href="./SUPABASE_SETUP_10_MIN.md" target="_blank" rel="noopener">Guía base real</a></div></section>`;
 }
 
 function renderUsers(){
   return `<section class="card">
-    <div class="card-header"><div><h2>Usuarios y permisos</h2><span class="small muted">El responsable del saldo puede ser distinto de quien rellena el formulario.</span></div>${store.isAdmin()?'<button type="button" class="button" id="addUser">Agregar usuario</button>':''}</div>
+    <div class="card-header"><div><h2>Usuarios y permisos</h2><span class="small muted">El responsable del saldo puede ser distinto de quien rellena el formulario.</span></div>${store.canManageAdministration()?'<button type="button" class="button" id="addUser">Agregar usuario</button>':''}</div>
     <div class="table-wrap"><table><thead><tr><th>Usuario</th><th>Rol</th><th>Transferencias</th><th>Saldo inicial</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>${userRows()}</tbody></table></div>
-  </section>${!store.isAdmin()?'<div class="alert alert-warning" style="margin-top:14px">Inicie como administrador para modificar usuarios, permisos y saldos iniciales.</div>':''}`;
+  </section>${!store.canManageAdministration()?'<div class="alert alert-warning" style="margin-top:14px">Inicie como administrador para modificar usuarios, permisos y saldos iniciales.</div>':''}`;
 }
 
 function projectGroupsHtml(){
@@ -81,7 +82,7 @@ function projectGroupsHtml(){
 
 function renderCatalogs(){
   const c=store.catalogs();
-  if(!store.isAdmin())return '<div class="alert alert-warning">Solo un administrador puede editar catálogos.</div>';
+  if(!store.canManageAdministration())return '<div class="alert alert-warning">Solo un administrador puede editar catálogos.</div>';
   return `<form id="catalogForm" class="stack">
     <section class="card"><div class="card-header"><div><h2>Descripciones y Proyecto 2</h2><span class="small muted">Cada descripción mantiene su propia lista desplegable.</span></div><button type="button" class="button button-secondary" id="addProjectGroup">Agregar descripción</button></div><div class="card-body" id="projectGroups">${projectGroupsHtml()||'<div class="empty-state" id="projectEmpty">Agregue la primera descripción.</div>'}</div></section>
     <section class="card"><div class="card-header"><h2>Catálogos generales</h2></div><div class="card-body"><div class="form-grid">
@@ -116,7 +117,7 @@ function renderSync(session){
 
 
 function renderForms(){
-  if(!store.isAdmin())return '<div class="alert alert-warning">Solo un administrador puede cambiar la estructura de los formularios.</div>';
+  if(!store.canManageAdministration())return '<div class="alert alert-warning">Solo un administrador puede cambiar la estructura de los formularios.</div>';
   const layout=getFormLayout(store.settings,formModule),schema=FORM_SCHEMAS[formModule],mobile=isMobileView();
   const controls=f=>`<input type="hidden" name="fieldId" value="${escapeHtml(f.id)}"><input type="hidden" name="fieldOrder" value="${f.order}"><div class="row"><button class="button button-ghost button-compact" type="button" data-field-up aria-label="Subir">↑</button><button class="button button-ghost button-compact" type="button" data-field-down aria-label="Bajar">↓</button></div>`;
   const rows=layout.map((f,index)=>mobile?`<article class="mobile-config-field" data-form-field="${escapeHtml(f.id)}">
@@ -140,9 +141,10 @@ function renderForms(){
 }
 
 function renderIntegrations(){
-  const m=store.settings.integrations?.microsoft||{},t=store.settings.integrations?.telegram||{},x=store.settings.integrations?.excel||{},gc=graph.config(),connected=graph.isConnected(),excelAdmin=store.isAdmin();
+  const m=store.settings.integrations?.microsoft||{},t=store.settings.integrations?.telegram||{},x=store.settings.integrations?.excel||{},gc=graph.config(),connected=graph.isConnected(),excelAdmin=store.canManageAdministration();
   return `<section class="stack">
-    <article class="card"><div class="card-header"><div><h2>Microsoft Graph · configuración rápida</h2><span class="small muted">Conecta OneDrive y Outlook mediante OAuth con PKCE. No se utiliza Client Secret en GitHub Pages ni en la futura APK.</span></div>${badge(connected?'CONECTADO':gc.clientId?'LISTO PARA CONECTAR':'PENDIENTE')}</div><div class="card-body">
+    <article class="card"><div class="card-header"><div><h2>Evidencias · Supabase Storage</h2><span class="small muted">Almacenamiento principal de fotos, PDFs y comprobantes. Administración los consulta desde Historial sin entrar a Supabase.</span></div>${badge(sync.isConfigured()?'HABILITADO':'PENDIENTE')}</div><div class="card-body"><div class="grid grid-3"><div><strong>Bucket privado</strong><br><span class="mono">skc-evidence</span></div><div><strong>Organización</strong><br><span class="small">facturas/año/mes/día/código</span></div><div><strong>Acceso</strong><br><span class="small">Solo mediante sesión autenticada de SKC Facturas</span></div></div><div class="alert alert-success" style="margin-top:14px"><strong>Modo recomendado:</strong> Supabase es la fuente principal de datos y evidencias. Microsoft Graph queda como respaldo o integración opcional.</div></div></article>
+    <article class="card"><div class="card-header"><div><h2>Microsoft Graph · opcional</h2><span class="small muted">Conecta OneDrive y Outlook si SKC decide usarlos más adelante. Las evidencias ya funcionan sin Microsoft.</span></div>${badge(connected?'CONECTADO':gc.clientId?'LISTO PARA CONECTAR':'PENDIENTE')}</div><div class="card-body">
       <form id="microsoftIntegrationForm"><div class="form-grid">
         <div class="field span-3"><label><input name="enabled" type="checkbox" ${m.enabled?'checked':''}> Activar Microsoft</label></div>
         <div class="field span-4"><label>Tenant ID</label><input name="tenantId" value="${escapeHtml(m.tenantId||'common')}" placeholder="common o GUID del tenant"></div>
@@ -161,9 +163,9 @@ function renderIntegrations(){
       <div class="field span-5"><label>Nombre del archivo</label><input name="filename" value="${escapeHtml(x.filename||'SKC_Registro_Oficial.xlsx')}"></div>
       <div class="field span-4"><label>Nombre de hoja</label><input name="sheetName" value="${escapeHtml(x.sheetName||'REGISTRO')}"></div>
       <div class="field span-4"><label><input name="onlySynced" type="checkbox" ${x.onlySynced?'checked':''}> Solo compras sincronizadas</label></div>
-      <div class="field span-4"><label>Carpeta OneDrive</label><input name="oneDriveFolder" value="${escapeHtml(x.oneDriveFolder||'Excel oficial')}"></div>
-      <div class="field span-4"><label><input name="autoUpload" type="checkbox" ${x.autoUpload?'checked':''} ${excelAdmin?'':'disabled'}> Actualizar en OneDrive tras sincronizar</label><span class="field-hint">Cuando este administrador tenga Graph conectado, el Excel se actualiza al recibir o enviar cambios. Así incorpora movimientos creados por otros usuarios.</span></div>
-    </div><div class="form-actions"><button class="button" type="submit">Guardar Excel</button><button class="button button-secondary" id="downloadOfficialExcel" type="button">Descargar Excel oficial</button><button class="button button-secondary" id="uploadOfficialExcel" type="button" ${excelAdmin?'':'disabled'}>Subir a OneDrive</button></div></form><div class="alert" style="margin-top:14px"><strong>Fuente de verdad:</strong> Supabase continúa siendo la base principal. El Excel se genera desde los movimientos para conservar el formato operativo sin volver a usar un archivo compartido como base de datos.</div></div></article>
+      <div class="field span-4"><label>Carpeta OneDrive (opcional)</label><input name="oneDriveFolder" value="${escapeHtml(x.oneDriveFolder||'Excel oficial')}"></div>
+      <div class="field span-4"><label><input name="autoUpload" type="checkbox" ${x.autoUpload?'checked':''} ${excelAdmin?'':'disabled'}> Actualizar en OneDrive tras sincronizar</label><span class="field-hint">Solo se usa si Microsoft Graph está conectado. El Excel siempre puede descargarse directamente desde la app.</span></div>
+    </div><div class="form-actions"><button class="button" type="submit">Guardar Excel</button><button class="button button-secondary" id="downloadOfficialExcel" type="button">Descargar Excel oficial</button><button class="button button-secondary" id="uploadOfficialExcel" type="button" ${excelAdmin?'':'disabled'}>Subir a OneDrive</button></div></form><div class="alert" style="margin-top:14px"><strong>Fuente de verdad:</strong> Supabase continúa siendo la base principal. El Excel oficial es una salida administrativa; las evidencias se consultan desde Historial.</div></div></article>
     <article class="card"><div class="card-header"><div><h2>Telegram</h2><span class="small muted">Para no exponer el token del bot en GitHub Pages, se recomienda una función proxy o Supabase Edge Function.</span></div>${badge(t.enabled?'HABILITADO':'DESHABILITADO')}</div><div class="card-body"><form id="telegramIntegrationForm"><div class="form-grid">
       <div class="field span-3"><label><input name="enabled" type="checkbox" ${t.enabled?'checked':''}> Activar Telegram</label></div><div class="field span-3"><label>Modo</label><select name="mode"><option value="proxy" selected>Proxy seguro</option></select></div><div class="field span-6"><label>URL del proxy</label><input name="proxyUrl" type="url" value="${escapeHtml(t.proxyUrl||'')}" placeholder="https://.../telegram"></div><div class="field span-4"><label>Chat ID</label><input name="chatId" value="${escapeHtml(t.chatId||'')}"></div><div class="field span-4"><label><input name="sendTransactions" type="checkbox" ${t.sendTransactions!==false?'checked':''}> Avisar nuevas compras</label></div><div class="field span-4"><label><input name="sendTransfers" type="checkbox" ${t.sendTransfers!==false?'checked':''}> Avisar transferencias</label></div>
     </div><div class="form-actions"><button class="button" type="submit">Guardar Telegram</button><button class="button button-secondary" id="testTelegram" type="button">Enviar prueba</button><a class="button button-ghost" href="./TELEGRAM_SETUP.md" target="_blank" rel="noopener">Guía Telegram</a></div></form></div></article>
@@ -183,7 +185,7 @@ function renderRules(){
       <p class="muted">El respaldo JSON puede incluir compras, mensajes, auditoría y evidencias guardadas en este dispositivo.</p>
       <div class="form-actions" style="justify-content:flex-start"><button type="button" class="button" id="exportBackup">Descargar respaldo completo</button><label class="button button-secondary" for="importBackup">Importar respaldo</label><input id="importBackup" type="file" accept="application/json,.json" hidden></div><hr><h3>Configuración portable</h3><p class="small muted">Exporta estructura de formularios, catálogos, reglas e integraciones para reutilizarla en GitHub Pages o en la futura APK, sin movimientos ni evidencias.</p><div class="form-actions" style="justify-content:flex-start"><button type="button" class="button" id="exportConfig">Exportar configuración JSON</button><label class="button button-secondary" for="importConfig">Importar configuración</label><a class="button button-ghost" href="./SKC_configuracion_prototipo_ejemplo.json" download>Plantilla de configuración</a><input id="importConfig" type="file" accept="application/json,.json" hidden></div>
       <div class="alert alert-warning"><strong>No suba respaldos ni facturas al repositorio público.</strong> GitHub Pages debe contener solo el código estático.</div>
-      ${store.isAdmin()?'<button type="button" class="button button-danger" id="resetApp">Borrar datos locales y reiniciar</button>':''}
+      ${store.canManageAdministration()?'<button type="button" class="button button-danger" id="resetApp">Borrar datos locales y reiniciar</button>':''}
     </div></article>
   </section>`;
 }
@@ -203,11 +205,11 @@ function renderMobileSettingsHome(session){
     </section>
     <section class="mobile-setting-group">
       <button class="mobile-setting-link" type="button" data-mobile-settings="users">${mobileIcon('●●','green')}<span><strong>Usuarios y permisos</strong><small>Invita usuarios y asigna roles.</small></span><span>›</span></button>
-      <div class="mobile-setting-toggle"><span><strong>Permitir enviar transferencias</strong><small>Habilita esta función para ${escapeHtml(u.name)}.</small></span><label class="mobile-toggle"><input id="mobileTransferToggle" type="checkbox" ${u.transferEnabled?'checked':''} ${store.isAdmin()?'':'disabled'}><span></span></label></div>
+      <div class="mobile-setting-toggle"><span><strong>Permitir enviar transferencias</strong><small>Habilita esta función para ${escapeHtml(u.name)}.</small></span><label class="mobile-toggle"><input id="mobileTransferToggle" type="checkbox" ${u.transferEnabled?'checked':''} ${store.canManageAdministration()?'':'disabled'}><span></span></label></div>
     </section>
     <section class="mobile-setting-group">
       <button class="mobile-setting-link" type="button" data-mobile-settings="forms">${mobileIcon('☷','purple')}<span><strong>Diseño de formularios</strong><small>Muestra, oculta y reorganiza campos.</small></span><span>›</span></button>
-      <button class="mobile-setting-link" type="button" data-mobile-settings="integrations">${mobileIcon('↗')}<span><strong>Integraciones</strong><small>Conecta Microsoft Graph, OneDrive, Outlook y Telegram.</small></span><span>›</span></button>
+      <button class="mobile-setting-link" type="button" data-mobile-settings="integrations">${mobileIcon('↗')}<span><strong>Integraciones</strong><small>Supabase Storage, Excel y conexiones opcionales.</small></span><span>›</span></button>
     </section>
     <section class="mobile-setting-group">
       <button class="mobile-setting-link" type="button" data-mobile-settings="sync">${mobileIcon('☁')}<span><strong>Sincronización</strong><small>Configura datos compartidos y frecuencia.</small></span><span>›</span></button>
@@ -224,7 +226,7 @@ function renderMobileSettingsHome(session){
 
 export async function renderSettings(app){
   const session=await sync.session().catch(()=>null);
-  const actions=store.isAdmin()&&tab==='users'?'<button class="button" id="headerAddUser" type="button">Agregar usuario</button>':'';
+  const actions=store.canManageAdministration()&&tab==='users'?'<button class="button" id="headerAddUser" type="button">Agregar usuario</button>':'';
   if(isMobileView()&&mobileSection==='home')app.innerHTML=renderMobileSettingsHome(session);
   else app.innerHTML=`${isMobileView()?'<button class="button button-ghost" id="mobileSettingsBack" type="button">‹ Volver a Configuración</button>':pageHeader('Configuración','Administra usuarios, formularios, integraciones, conexión y respaldos.',actions,'Administración')}<div class="tabs"><button class="tab ${tab==='setup'?'active':''}" data-settings-tab="setup">Preparación</button><button class="tab ${tab==='users'?'active':''}" data-settings-tab="users">Usuarios</button><button class="tab ${tab==='catalogs'?'active':''}" data-settings-tab="catalogs">Catálogos</button><button class="tab ${tab==='forms'?'active':''}" data-settings-tab="forms">Formularios</button><button class="tab ${tab==='integrations'?'active':''}" data-settings-tab="integrations">Integraciones</button><button class="tab ${tab==='sync'?'active':''}" data-settings-tab="sync">Base compartida</button><button class="tab ${tab==='rules'?'active':''}" data-settings-tab="rules">Reglas y respaldo</button></div><div id="settingsPanel">${tab==='setup'?renderSetup(session):tab==='users'?renderUsers():tab==='catalogs'?renderCatalogs():tab==='forms'?renderForms():tab==='integrations'?renderIntegrations():tab==='sync'?renderSync(session):renderRules()}</div>`;
 
@@ -269,7 +271,7 @@ export async function renderSettings(app){
   $('#copyRedirectUri',app)?.addEventListener('click',async()=>{try{const value=$('#microsoftIntegrationForm',app)?.elements.redirectUri.value||graph.config().redirectUri;await navigator.clipboard.writeText(value);toast('Redirect URI copiado.','success')}catch{toast('Seleccione y copie manualmente el Redirect URI.','info')}});
   $('#downloadGraphTemplate',app)?.addEventListener('click',()=>{const c=graph.config(),x={format:'skc-microsoft-graph-setup',version:1,applicationType:'Single-page application (SPA)',redirectUris:[c.redirectUri],tenantId:c.tenantId,clientId:c.clientId||'PEGAR_CLIENT_ID',delegatedPermissions:c.scopes,notes:['No crear Client Secret para GitHub Pages ni APK.','Usar Authorization Code Flow con PKCE.','Conceder consentimiento de administrador si la política del tenant lo exige.']};downloadBlob(new Blob([JSON.stringify(x,null,2)],{type:'application/json'}),'SKC_Microsoft_Graph_setup.json')});
 
-  const saveExcel=async()=>{const f=$('#excelIntegrationForm',app);if(!f)return;const d=Object.fromEntries(new FormData(f));await store.saveSettings({integrations:{excel:{enabled:f.elements.enabled.checked,filename:(d.filename||'SKC_Registro_Oficial.xlsx').trim(),sheetName:(d.sheetName||'REGISTRO').trim(),onlySynced:f.elements.onlySynced.checked,oneDriveFolder:(d.oneDriveFolder||'Excel oficial').trim(),autoUpload:store.isAdmin()?f.elements.autoUpload.checked:Boolean(store.settings.integrations?.excel?.autoUpload)}}})};
+  const saveExcel=async()=>{const f=$('#excelIntegrationForm',app);if(!f)return;const d=Object.fromEntries(new FormData(f));await store.saveSettings({integrations:{excel:{enabled:f.elements.enabled.checked,filename:(d.filename||'SKC_Registro_Oficial.xlsx').trim(),sheetName:(d.sheetName||'REGISTRO').trim(),onlySynced:f.elements.onlySynced.checked,oneDriveFolder:(d.oneDriveFolder||'Excel oficial').trim(),autoUpload:store.canManageAdministration()?f.elements.autoUpload.checked:Boolean(store.settings.integrations?.excel?.autoUpload)}}})};
   $('#excelIntegrationForm',app)?.addEventListener('submit',async e=>{e.preventDefault();try{await saveExcel();toast('Configuración del Excel oficial guardada.','success');renderSettings(app)}catch(err){toast(err.message,'error')}});
   $('#downloadOfficialExcel',app)?.addEventListener('click',async()=>{try{await saveExcel();const r=await officialExcel.download();toast(`${r.name} generado correctamente.`, 'success','Excel oficial listo')}catch(err){toast(err.message,'error','No se pudo generar el Excel')}});
   $('#uploadOfficialExcel',app)?.addEventListener('click',async()=>{try{await saveExcel();const item=await officialExcel.uploadToOneDrive();toast(`${item.name||officialExcel.config().filename} actualizado en OneDrive.`, 'success','Excel oficial sincronizado')}catch(err){toast(err.message,'error','No se pudo subir el Excel')}});

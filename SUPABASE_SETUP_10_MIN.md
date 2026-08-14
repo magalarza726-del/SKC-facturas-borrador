@@ -7,7 +7,7 @@ Supabase es la fuente de datos multiusuario de SKC Facturas. GitHub Pages aloja 
 1. Cree un proyecto en Supabase.
 2. Abra **SQL Editor**.
 3. Pegue y ejecute `docs/supabase-schema.sql` completo.
-4. Si ya había ejecutado una versión anterior, vuelva a ejecutar el archivo 2.4.0: es idempotente y añade `appConfig`, restricciones de integridad y políticas sin DELETE sin borrar los eventos existentes.
+4. Si ya había ejecutado una versión anterior, vuelva a ejecutar el archivo 2.5.0: es idempotente y añade `appConfig`, restricciones de integridad y políticas sin DELETE sin borrar los eventos existentes.
 
 ## 2. Obtener los dos datos del navegador
 
@@ -16,7 +16,7 @@ Desde **Connect** o **Project Settings → API Keys**, copie:
 - Project URL, con forma `https://xxxxx.supabase.co`
 - Publishable key, con forma `sb_publishable_...`
 
-Nunca use `sb_secret_...` ni `service_role` en GitHub Pages. La aplicación 2.4.0 las rechaza explícitamente.
+Nunca use `sb_secret_...` ni `service_role` en GitHub Pages. La aplicación 2.5.0 las rechaza explícitamente.
 
 ## 3. Configurar la aplicación
 
@@ -31,11 +31,11 @@ En **Configuración → Base compartida**:
 
 ## 4. Identidad
 
-El correo de la cuenta Supabase debe coincidir con el correo de un usuario activo creado en **Configuración → Usuarios**. Si no coincide, 2.4.0 bloquea las operaciones para impedir que una compra quede atribuida al usuario equivocado.
+El correo de la cuenta Supabase debe coincidir con el correo de un usuario activo creado en **Configuración → Usuarios**. Si no coincide, 2.5.0 bloquea las operaciones para impedir que una compra quede atribuida al usuario equivocado.
 
 ## 5. Configuración compartida
 
-A partir de 2.4.0, los administradores publican por Supabase:
+A partir de 2.5.0, los administradores publican por Supabase:
 
 - orden/visibilidad/requerimiento de campos de formularios;
 - reglas operativas;
@@ -46,6 +46,18 @@ Los otros dispositivos reciben esos cambios en la siguiente sincronización. Con
 ## Diagnóstico
 
 - `401/403`: revise sesión, Publishable key y políticas RLS.
-- `entity_type ... violates check constraint`: vuelva a ejecutar `supabase-schema.sql` 2.4.0.
+- `entity_type ... violates check constraint`: vuelva a ejecutar `supabase-schema.sql` 2.5.0.
 - Una sesión está conectada pero no puede operar: asigne su correo a un usuario interno activo.
 - Evidencia rechazada: formatos permitidos PDF/JPEG/PNG/WEBP/GIF/HEIC/HEIF, máximo 20 MB por archivo.
+
+## 6. Evidencias privadas
+
+El bucket `skc-evidence` es privado. Las nuevas compras se organizan así:
+
+`facturas/YYYY/MM/DD/CODIGO/01_CODIGO.ext`
+
+Las transferencias usan `transferencias/YYYY/MM/DD/CODIGO/`. Administración y el usuario autorizado consultan los archivos desde **Historial → Ver evidencia**; no necesitan abrir el panel de Supabase.
+
+## 7. Reconciliación del espejo local
+
+IndexedDB conserva una copia local. Después de leer completamente `skc_events`, 2.5.0 elimina del navegador únicamente los elementos con estado `SINCRONIZADO` que ya no existen en Supabase. Los cambios `PENDIENTE`/`ERROR` se conservan. Esto evita que una base remota vacía siga mostrando saldos antiguos del navegador.

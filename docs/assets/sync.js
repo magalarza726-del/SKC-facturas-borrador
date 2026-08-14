@@ -19,6 +19,17 @@ export function normalizeSupabaseUrl(value){
 }
 
 const encodeStoragePath=path=>String(path||'').split('/').map(encodeURIComponent).join('/');
+const extensionOf=name=>{const m=/\.([a-z0-9]{1,8})$/i.exec(String(name||''));return m?`.${m[1].toLowerCase()}`:''};
+export function evidenceStoragePath(type,entity,attachment,index=0){
+  const rawDate=type==='transactions'?entity.purchaseDate:(entity.transferDate||String(entity.createdAt||'').slice(0,10));
+  const date=/^\d{4}-\d{2}-\d{2}$/.test(String(rawDate||''))?String(rawDate):new Date().toISOString().slice(0,10);
+  const [year,month,day]=date.split('-');
+  const code=safeFilename(entity.code||entity.id||'SIN-CODIGO').replace(/\s+/g,'_');
+  const folder=type==='transactions'?'facturas':type==='messages'?'transferencias':safeFilename(type);
+  const seq=String(index+1).padStart(2,'0');
+  const ext=extensionOf(attachment.filename);
+  return `${folder}/${year}/${month}/${day}/${code}/${seq}_${code}${ext}`;
+}
 
 async function responseError(response,fallback){
   const text=await response.text().catch(()=>'');
@@ -137,28 +148,31 @@ export class SupabaseSync extends EventTarget{
   }
 
   async pull(){
-    let imported=0;
+    let imported=0,complete=false;const remoteKeys=new Set();
     for(let page=0;page<MAX_PULL_PAGES;page+=1){
       const offset=page*PAGE_SIZE;
       const path=`/rest/v1/skc_events?select=id,entity_type,entity_id,payload,updated_at&order=updated_at.asc,id.asc&limit=${PAGE_SIZE}&offset=${offset}`;
       const response=await this.apiFetch(path,{method:'GET',headers:{Accept:'application/json'}});
       const rows=await response.json();
       for(const row of rows){
+        remoteKeys.add(row.id);
         if(SYNCABLE_TYPES.includes(row.entity_type)&&row.payload?.id&&await store.mergeRemote(row.entity_type,row.payload))imported+=1;
       }
-      if(rows.length<PAGE_SIZE)break;
+      if(rows.length<PAGE_SIZE){complete=true;break}
       if(page===MAX_PULL_PAGES-1)throw new Error('La base contiene demasiados eventos para una sola sincronización. Reduzca el histórico o aumente la paginación.');
     }
-    if(imported){await store.reload();if(this.activeSession)await this.bindSessionUser(this.activeSession)}
+    if(complete){const removed=await store.reconcileRemoteMirror(remoteKeys);if(removed)this.dispatchEvent(new CustomEvent('status',{detail:{running:true,message:`Reconciliando base compartida: ${removed} dato(s) local(es) antiguos retirados.`}}))}
+    if(imported||complete){await store.reload();if(this.activeSession)await this.bindSessionUser(this.activeSession)}
+    await db.setMeta('syncBackendScope',this.config().url);
     return imported;
   }
 
-  async uploadAttachment(type,entity,attachment){
+  async uploadAttachment(type,entity,attachment,index=0){
     if(attachment.remotePath)return attachment;
     const file=await db.getFile(attachment.id);
     if(!file?.blob)throw new Error(`No se encontró ${attachment.filename}.`);
     if(file.blob.size>20*1024*1024)throw new Error(`${attachment.filename} supera 20 MB.`);
-    const path=`${type}/${entity.id}/${attachment.id}-${safeFilename(attachment.filename)}`;
+    const path=evidenceStoragePath(type,entity,attachment,index);
     await this.apiFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(path)}`,{
       method:'POST',
       headers:{'Content-Type':attachment.mime||file.mime||'application/octet-stream','x-upsert':'true'},
@@ -172,7 +186,7 @@ export class SupabaseSync extends EventTarget{
     let attachments=Array.isArray(entity.attachments)?[...entity.attachments]:null;
     if(attachments){
       const uploaded=[];
-      for(const attachment of attachments)uploaded.push(await this.uploadAttachment(type,entity,attachment));
+      for(let i=0;i<attachments.length;i+=1)uploaded.push(await this.uploadAttachment(type,entity,attachments[i],i));
       attachments=uploaded;
     }
     const payload=structuredClone(entity);
@@ -247,13 +261,18 @@ export class SupabaseSync extends EventTarget{
 
   stopPolling(){if(this.timer)clearInterval(this.timer);this.timer=0}
 
-  async openAttachment(type,id,attachment){
+  async getAttachmentBlob(type,id,attachment){
     const local=await db.getFile(attachment.id);
-    if(local?.blob){const url=URL.createObjectURL(local.blob);window.open(url,'_blank','noopener');setTimeout(()=>URL.revokeObjectURL(url),60000);return}
+    if(local?.blob)return local.blob;
     if(!attachment.remotePath)throw new Error('La evidencia no está disponible en este dispositivo.');
     const response=await this.apiFetch(`/storage/v1/object/authenticated/${BUCKET}/${encodeStoragePath(attachment.remotePath)}`,{method:'GET'}),blob=await response.blob();
     await db.putFile({id:attachment.id,entityKey:`${type}:${id}`,filename:attachment.filename,mime:attachment.mime,size:attachment.size,sha256:attachment.sha256,remotePath:attachment.remotePath,blob});
-    const url=URL.createObjectURL(blob);window.open(url,'_blank','noopener');setTimeout(()=>URL.revokeObjectURL(url),60000);
+    return blob;
+  }
+
+  async openAttachment(type,id,attachment){
+    const blob=await this.getAttachmentBlob(type,id,attachment),url=URL.createObjectURL(blob);
+    window.open(url,'_blank','noopener');setTimeout(()=>URL.revokeObjectURL(url),60000);
   }
 }
 

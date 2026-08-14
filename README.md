@@ -1,26 +1,27 @@
-# SKC Facturas Web 2.4.0
+# SKC Facturas Web 2.5.0
 
-Versión refactorizada y endurecida para el piloto multiusuario de SKC. Mantiene la interfaz **Escritorio/Móvil**, IndexedDB local, sincronización con Supabase, flujo contable, transferencias, recordatorios, detección de duplicados, evidencias, Microsoft Graph, Telegram y el Excel oficial SKC.
+Versión para piloto multiusuario de SKC con interfaz **Escritorio/Móvil**, IndexedDB local-first, Supabase como backend compartido, Supabase Storage para evidencias, flujo contable, transferencias, recordatorios, duplicados, Excel oficial y roles de acceso.
 
-## Novedades de estabilidad 2.4.0
+## Cambios principales 2.5.0
 
-- Formularios y reglas administrativas se sincronizan entre dispositivos mediante `appConfig`.
-- Respaldo endurecido: no exporta sesiones Supabase ni secretos heredados.
-- Dependencias de sincronización protegen el libro contable cuando falla el documento fuente.
-- Sincronización Supabase paginada, coalescida y con recuperación correcta de estado ante errores.
-- URL de Supabase normalizada y bloqueo explícito de Secret keys en el navegador.
-- Vinculación obligatoria entre sesión Supabase y usuario interno cuando está activado el bloqueo por correo.
-- Validaciones de archivos, hashes individuales de evidencias y campos configurables obligatorios reforzadas.
-- Microsoft Graph usa permisos mínimos; `Mail.Send` solo se solicita cuando Outlook está activado.
-- Generador XLSX local, sin CDN, con estructura oficial SKC A:Q (17 columnas), fecha `d/m/yyyy` y funcionamiento offline.
-- Excel oficial en OneDrive restringido a administradores para reducir sobrescrituras concurrentes.
-- Service worker actualizado y seguro: el fallback HTML solo se aplica a navegación, no a módulos JavaScript.
-- Esquema Supabase sin borrado de eventos y con restricciones de integridad.
+- Usuarios reales precargados: **Dalton, Evelyn, Javier, Karen y Tito**, con saldo inicial `$0.00`.
+- Eliminación automática de `Usuario Demo` y deduplicación de usuarios repetidos.
+- Roles en una sola aplicación: **ADMIN** ve configuración, auditoría, ajustes, exportaciones y vista global; **USUARIO** opera y consulta únicamente su ámbito.
+- Se elimina Manual de la navegación.
+- Supabase Storage es el repositorio principal de fotos/PDF. Microsoft Graph/OneDrive permanece como integración opcional.
+- Historial permite **Ver evidencia** en una galería con anterior/siguiente y **Descargar evidencia**; múltiples archivos se empaquetan en ZIP.
+- Evidencias remotas organizadas por código SKC en `facturas/año/mes/día/CODIGO/`.
+- Reconciliación remota: si Supabase está vacío o un evento sincronizado deja de existir remotamente, el espejo local ya no sigue mostrando ese dato antiguo. Los datos locales aún pendientes no se borran automáticamente.
+- Se conserva la exportación al Excel oficial SKC y el resto de funciones de 2.4.0.
+
+## Primer administrador
+
+En una instalación limpia todos los usuarios nacen como `USUARIO`. Mientras no exista ningún `ADMIN`, Configuración permanece disponible para asignar el primer administrador. Desde ese momento, solo un administrador puede volver a entrar a Configuración y modificar usuarios/reglas compartidas.
 
 ## Publicación
 
-El contenido publicable está en `docs/`. El workflow `.github/workflows/pages.yml` valida código, almacenamiento, archivos, sincronización, Graph y Excel antes de desplegar.
+El sitio publicable está en `docs/`. Para Supabase, ejecute o vuelva a ejecutar `docs/supabase-schema.sql`; es idempotente. El bucket privado `skc-evidence` almacena las evidencias.
 
-Para una base real compartida, ejecute o vuelva a ejecutar `docs/supabase-schema.sql` en Supabase SQL Editor. La migración es idempotente y añade el tipo `appConfig` requerido por la configuración compartida.
+Antes de actualizar un piloto, exporte un respaldo. Después de desplegar `docs/`, limpie el service worker/cache de la versión anterior.
 
-Documentos clave: `LAUNCH_CHECKLIST.md`, `SUPABASE_SETUP_10_MIN.md`, `GRAPH_SETUP_10_MIN.md`, `TELEGRAM_SETUP.md`, `ANDROID_NATIVE_READINESS.md` y `BUGFIX_REPORT_2.4.0.md`.
+Consulte `RELEASE_2.5.0.md` y `VALIDATION_REPORT_2.5.0.txt` para los detalles de esta entrega.

@@ -1,5 +1,19 @@
 # Cambios
 
+## 2.5.0 — Roles, evidencia privada y reconciliación
+
+- Los usuarios base reales son Dalton, Evelyn, Javier, Karen y Tito, todos con saldo inicial de `$0.00`; se elimina `Usuario Demo` y se deduplican nombres repetidos.
+- Se corrige un bug de migración que podía generar el mismo ID para varios usuarios predeterminados.
+- Se separa la experiencia **ADMIN / USUARIO** en la misma aplicación: Configuración, auditoría, ajustes y exportaciones administrativas quedan fuera del rol usuario.
+- Los usuarios normales ven sus propios movimientos, mensajes, libro y saldo; el administrador mantiene la vista global.
+- Se retira el botón y la ruta operativa **Manual** de la navegación.
+- Supabase Storage pasa a ser el almacenamiento principal recomendado para evidencias; Microsoft Graph queda opcional.
+- Las evidencias se almacenan con rutas legibles: `facturas/año/mes/día/CODIGO/` y `transferencias/año/mes/día/CODIGO/`.
+- Historial añade **Ver evidencia** con galería/deslizador de todas las fotos/PDF y **Descargar evidencia**; varias evidencias se descargan como ZIP.
+- Se corrige el espejo local: tras una lectura completa de Supabase, los registros locales marcados como sincronizados pero inexistentes en la base remota se retiran, evitando mostrar saldos/movimientos antiguos cuando la base está vacía o fue reiniciada.
+- Las evidencias cacheadas asociadas a esos registros antiguos también se limpian.
+- El service worker precachea el generador ZIP y deja de precachear el módulo Manual.
+
 ## 2.4.0 — Refactor y estabilidad
 
 - Se corrigió una fuga crítica del respaldo: las sesiones Supabase ya no exportan access/refresh tokens.

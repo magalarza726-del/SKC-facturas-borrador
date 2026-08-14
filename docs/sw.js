@@ -1,8 +1,8 @@
-const CACHE='skc-facturas-web-v2.4.0';
+const CACHE='skc-facturas-web-v2.5.0';
 const ASSETS=[
   './','./index.html','./404.html','./manifest.webmanifest','./icons/icon.svg','./supabase-schema.sql','./app-config.schema.json','./SKC_configuracion_prototipo_ejemplo.json','./LAUNCH_CHECKLIST.md','./GRAPH_SETUP_10_MIN.md','./SUPABASE_SETUP_10_MIN.md','./TELEGRAM_SETUP.md','./ANDROID_NATIVE_READINESS.md',
-  './assets/styles.css','./assets/app.js','./assets/view.js','./assets/mobile.js','./assets/db.js','./assets/files.js','./assets/store.js','./assets/sync.js','./assets/ui.js','./assets/utils.js','./assets/form-config.js','./assets/graph.js','./assets/integrations.js','./assets/excel-official.js','./assets/excel-writer.js',
-  './assets/pages/home.js','./assets/pages/invoice.js','./assets/pages/messages.js','./assets/pages/reminders.js','./assets/pages/flow.js','./assets/pages/history.js','./assets/pages/settings.js','./assets/pages/manual.js'
+  './assets/styles.css','./assets/app.js','./assets/view.js','./assets/mobile.js','./assets/db.js','./assets/files.js','./assets/store.js','./assets/sync.js','./assets/ui.js','./assets/utils.js','./assets/form-config.js','./assets/graph.js','./assets/integrations.js','./assets/excel-official.js','./assets/excel-writer.js','./assets/zip.js',
+  './assets/pages/home.js','./assets/pages/invoice.js','./assets/pages/messages.js','./assets/pages/reminders.js','./assets/pages/flow.js','./assets/pages/history.js','./assets/pages/settings.js'
 ];
 
 self.addEventListener('install',event=>{

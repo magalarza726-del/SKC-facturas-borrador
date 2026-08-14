@@ -99,3 +99,17 @@ html[data-view-mode="mobile"] .page-header{display:none}
 /* 2.2.0 configurable forms and integration console */
 .config-field-hidden{display:none!important}#formLayoutRows input[type=text],#formLayoutRows input:not([type]){min-width:180px}#formLayoutRows td:first-child{white-space:nowrap}.integration-status{display:flex;align-items:center;gap:8px}.tabs{overflow-x:auto;scrollbar-width:thin}.tabs .tab{flex:0 0 auto}@media(max-width:620px){#formLayoutRows{min-width:760px}.card-body>.form-grid{grid-template-columns:1fr}.card-body>.form-grid>.field{grid-column:1!important}}
 .mobile-config-list{display:grid;gap:10px;margin-top:14px}.mobile-config-field{padding:12px;border:1px solid var(--line);border-radius:12px;background:#fbfdff}.mobile-config-head{display:flex;align-items:center;gap:8px;justify-content:space-between;margin-bottom:10px}.mobile-config-head>span:first-child{min-width:0;flex:1}.mobile-config-head strong,.mobile-config-head small{display:block}.mobile-config-head small{color:var(--muted);margin-top:2px}.mobile-config-options{display:flex;gap:16px;flex-wrap:wrap;margin:10px 0}.mobile-config-options label{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700}
+
+/* 2.5.0 · visor privado de evidencias Supabase */
+.evidence-modal{max-width:980px;width:min(96vw,980px)}
+.evidence-stage{display:grid;grid-template-columns:52px minmax(0,1fr) 52px;align-items:center;gap:10px;min-height:58vh;background:#0c1724;border-radius:14px;padding:12px}
+.evidence-canvas{min-width:0;min-height:54vh;display:flex;align-items:center;justify-content:center;flex-direction:column;color:#eaf2fb;overflow:hidden}
+.evidence-image{display:block;max-width:100%;max-height:68vh;object-fit:contain;border-radius:8px;background:#fff}
+.evidence-pdf{width:100%;height:68vh;border:0;border-radius:8px;background:#fff}
+.evidence-arrow{width:44px;height:44px;border:0;border-radius:50%;background:rgba(255,255,255,.14);color:#fff;font-size:34px;line-height:1;cursor:pointer}
+.evidence-arrow:hover{background:rgba(255,255,255,.24)}
+.evidence-caption{display:flex;justify-content:space-between;gap:16px;align-items:center;padding:12px 4px 6px}
+.evidence-thumbnails{display:flex;gap:8px;flex-wrap:wrap;padding:4px 0 10px}
+.evidence-thumb{border:1px solid #aec8e6;background:#fff;color:#0a4f91;border-radius:999px;min-width:34px;height:34px;font-weight:700;cursor:pointer}
+.evidence-thumb.active{background:#0868c4;color:#fff;border-color:#0868c4}
+@media(max-width:720px){.evidence-modal{width:100%;max-width:none;max-height:94vh}.evidence-stage{grid-template-columns:40px minmax(0,1fr) 40px;min-height:54vh;padding:8px}.evidence-canvas{min-height:50vh}.evidence-image,.evidence-pdf{max-height:62vh;height:62vh}.evidence-arrow{width:36px;height:36px;font-size:28px}.evidence-modal .modal-footer{position:sticky;bottom:0;background:#fff}}

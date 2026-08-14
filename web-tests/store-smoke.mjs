@@ -18,6 +18,7 @@ class FakeObjectStore{
   get(key){return request(this.tx,()=>this.data.rows.get(key))}
   getAll(){return request(this.tx,()=>[...this.data.rows.values()])}
   clear(){return request(this.tx,()=>{this.data.rows.clear()})}
+  delete(key){return request(this.tx,()=>{this.data.rows.delete(key)})}
   index(name){return new FakeIndex(this.tx,this.data,name)}
 }
 class FakeDatabase{
@@ -36,10 +37,17 @@ globalThis.indexedDB=new FakeIndexedDB();
 const {store}=await import('../docs/assets/store.js');
 const {db}=await import('../docs/assets/db.js');
 await store.initialize();
-assert.equal(store.currentUser().role,'ADMIN');
-const demo=store.currentUser();
-const karen=await store.saveUser({name:'Karen',email:'karen@example.com',role:'USUARIO',transferEnabled:true,initialBalance:0,active:true});
-assert.equal(store.users().length,2);
+assert.deepEqual(store.users().map(x=>x.name).sort(),['Dalton','Evelyn','Javier','Karen','Tito'].sort());
+assert.ok(store.users().every(x=>Number(x.initialBalance||0)===0));
+assert.equal(store.users().some(x=>/usuario demo/i.test(x.name)),false);
+assert.equal(store.state.ledger.some(x=>x.sourceType==='SALDO_INICIAL'),false);
+assert.equal(store.hasAdmin(),false);
+assert.equal(store.canManageAdministration(),true); // bootstrap seguro: el primer administrador aún no está asignado.
+const demo=await store.saveUser({...store.currentUser(),email:'dalton@example.com',role:'ADMIN',transferEnabled:true,initialBalance:0,active:true});
+assert.equal(store.hasAdmin(),true);
+let karen=store.users().find(x=>x.name==='Karen');
+karen=await store.saveUser({...karen,email:'karen@example.com',role:'USUARIO',transferEnabled:true,initialBalance:0,active:true});
+assert.equal(store.users().length,5);
 
 // A description/project can legitimately have no Proyecto 2 options. It must not disappear from the catalog.
 await store.saveCatalogs({
@@ -113,6 +121,10 @@ await store.setCurrentUser(karen.id);
 await store.confirmTransfer(transfer.id);
 assert.equal(store.balances().find(x=>x.user.id===karen.id).balance,25);
 assert.equal(store.state.messages.find(x=>x.id===transfer.id).status,'CONFIRMADO');
+assert.equal(store.canManageAdministration(),false);
+assert.equal(store.visibleBalances().length,1);
+assert.equal(store.visibleBalances()[0].user.id,karen.id);
+assert.equal(store.visibleAudit().length,0);
 
 await db.setMeta('supabaseSession',{access_token:'must-not-leave-browser',refresh_token:'also-private'});
 const snapshot=await store.exportSnapshot(false);
@@ -167,3 +179,16 @@ await assert.rejects(()=>store.createTransaction({amount:3,movementType:'Gasto',
 const withRequiredFile=await store.createTransaction({amount:3,movementType:'Gasto',accountUserId:karen.id,purchaseDate:'2026-07-30',descriptionBase:'Mantenimiento y compra de insumos',project:'Plan de infraestructura mtto de extractores',description:'Prueba evidencia requerida',evidenceStatus:'Comprobante adjunto'},[{id:'required-file',filename:'evidencia.pdf',mime:'application/pdf',size:4,sha256:'required-sha',remotePath:''}]);
 assert.equal(withRequiredFile.attachments.length,1);
 console.log('CONFIGURABLE REQUIRED FILE SMOKE OK');
+
+// Si Supabase devuelve una fotografía completa de la base y un dato local ya marcado como
+// SINCRONIZADO no existe allí, debe retirarse del espejo local. Esto evita mostrar movimientos
+// antiguos después de vaciar/cambiar la base compartida.
+await db.putEntity('transactions',{id:'stale-synced',code:'SKC-STALE',createdAt:'2026-01-01T00:00:00.000Z',updatedAt:'2026-01-01T00:00:00.000Z',syncStatus:'SINCRONIZADO',attachments:[]});
+await store.reload();
+const mirrorKeys=new Set();
+for(const type of ['users','catalogs','appConfig','transactions','reminders','messages','ledger','audit'])for(const value of store.state[type])if(value.syncStatus==='SINCRONIZADO'&&value.id!=='stale-synced')mirrorKeys.add(`${type}:${value.id}`);
+assert.ok(store.state.transactions.some(x=>x.id==='stale-synced'));
+assert.ok((await store.reconcileRemoteMirror(mirrorKeys))>=1);
+assert.equal(store.state.transactions.some(x=>x.id==='stale-synced'),false);
+console.log('REMOTE MIRROR RECONCILIATION SMOKE OK');
+

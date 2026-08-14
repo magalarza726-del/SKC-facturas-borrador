@@ -1,6 +1,6 @@
 # Preparación para Android nativo
 
-La versión 2.4.0 separa configuración, formularios e integraciones de la interfaz. Esto permite reutilizar el mismo contrato JSON en una futura APK.
+La versión 2.5.0 separa configuración, formularios e integraciones de la interfaz. Esto permite reutilizar el mismo contrato JSON en una futura APK.
 
 ## Contratos reutilizables
 

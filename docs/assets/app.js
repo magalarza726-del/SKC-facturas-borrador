@@ -10,32 +10,32 @@ import {renderReminders} from './pages/reminders.js';
 import {renderFlow} from './pages/flow.js';
 import {renderHistory} from './pages/history.js';
 import {renderSettings} from './pages/settings.js';
-import {renderManual} from './pages/manual.js';
 import {graph} from './graph.js';
 import {officialExcel} from './excel-official.js';
 
 initializeViewMode();
 
-const routes={home:renderHome,invoice:renderInvoice,messages:renderMessages,reminders:renderReminders,flow:renderFlow,history:renderHistory,settings:renderSettings,manual:renderManual};
+const routes={home:renderHome,invoice:renderInvoice,messages:renderMessages,reminders:renderReminders,flow:renderFlow,history:renderHistory,settings:renderSettings};
 const routeTitles={
-  home:'SKC Ingeniería · Facturas',invoice:'Subir factura',messages:'Mensajes',reminders:'Recordatorios',flow:'Flujo',history:'Historial',settings:'Configuración',manual:'Manual'
+  home:'SKC Ingeniería · Facturas',invoice:'Subir factura',messages:'Mensajes',reminders:'Recordatorios',flow:'Flujo',history:'Historial',settings:'Configuración'
 };
-const navItems=[
-  ['home','⌂','Inicio'],['invoice','🧾','Factura'],['messages','✉','Mensajes'],['reminders','⏰','Recordatorios'],['flow','▦','Flujo'],['history','↺','Historial'],['settings','⚙','Configuración'],['manual','?','Manual']
-];
-const mobileNavItems=[['home','⌂','Inicio'],['flow','⌁','Flujo'],['messages','◯','Mensajes'],['settings','⚙','Ajustes']];
+const baseNavItems=[['home','⌂','Inicio'],['invoice','🧾','Factura'],['messages','✉','Mensajes'],['reminders','⏰','Recordatorios'],['flow','▦','Flujo'],['history','↺','Historial']];
+const adminNavItems=[...baseNavItems,['settings','⚙','Configuración']];
+const navItems=()=>store.canManageAdministration()?adminNavItems:baseNavItems;
+const mobileBaseNavItems=[['home','⌂','Inicio'],['flow','⌁','Flujo'],['messages','◯','Mensajes']];
+const mobileNavItems=()=>store.canManageAdministration()?[...mobileBaseNavItems,['settings','⚙','Ajustes']]:mobileBaseNavItems;
 let activeRoute='home',renderToken=0,reminderTimer=0,clockTimer=0;
 
 function routeFromHash(){const r=location.hash.replace(/^#/,'').split(/[?&/]/)[0].trim();return routes[r]?r:'home'}
 export function navigate(route){const next=routes[route]?route:'home';if(location.hash!==`#${next}`)location.hash=next;else renderRoute()}
 
-function navHtml(){return navItems.map(([route,icon,label])=>`<a class="nav-link ${activeRoute===route?'active':''}" href="#${route}" data-nav-route="${route}"><span aria-hidden="true">${icon}</span><span>${escapeHtml(label)}</span></a>`).join('')}
-function mobileNavActive(route){return ['invoice','history','reminders','manual'].includes(route)?'home':route}
+function navHtml(){return navItems().map(([route,icon,label])=>`<a class="nav-link ${activeRoute===route?'active':''}" href="#${route}" data-nav-route="${route}"><span aria-hidden="true">${icon}</span><span>${escapeHtml(label)}</span></a>`).join('')}
+function mobileNavActive(route){return ['invoice','history','reminders'].includes(route)?'home':route}
 function mobileNavHtml(){
   const current=mobileNavActive(activeRoute),unread=store.incomingMessages().filter(x=>x.status==='ENVIADO').length;
-  return mobileNavItems.map(([route,icon,label])=>`<a class="mobile-bottom-link ${current===route?'active':''}" href="#${route}" aria-label="${escapeHtml(label)}"><span class="mobile-nav-icon" aria-hidden="true">${icon}</span>${route==='messages'&&unread?`<span class="nav-badge">${Math.min(unread,99)}</span>`:''}<span>${escapeHtml(label)}</span></a>`).join('');
+  return mobileNavItems().map(([route,icon,label])=>`<a class="mobile-bottom-link ${current===route?'active':''}" href="#${route}" aria-label="${escapeHtml(label)}"><span class="mobile-nav-icon" aria-hidden="true">${icon}</span>${route==='messages'&&unread?`<span class="nav-badge">${Math.min(unread,99)}</span>`:''}<span>${escapeHtml(label)}</span></a>`).join('');
 }
-function userOptions(){const current=store.currentUser().id;return store.users().map(u=>`<option value="${escapeHtml(u.id)}" ${u.id===current?'selected':''}>${escapeHtml(u.name)}</option>`).join('')}
+function userOptions(){const current=store.currentUser().id;return store.users().map(u=>`<option value="${escapeHtml(u.id)}" ${u.id===current?'selected':''}>${escapeHtml(u.name)}${u.role==='ADMIN'?' · Admin':''}</option>`).join('')}
 function updateClock(){const x=$('#mobileClock');if(x)x.textContent=new Intl.DateTimeFormat('es-US',{hour:'numeric',minute:'2-digit'}).format(new Date())}
 function updateViewControls(){
   const mobile=getViewMode()==='mobile';
@@ -45,7 +45,7 @@ function updateViewControls(){
 function updateChrome(){
   $('#desktopNav').innerHTML=navHtml();
   $('#mobileBottomNav').innerHTML=mobileNavHtml();
-  const opts=userOptions(),locked=sync.isUserLocked(),desktopUser=$('#currentUserSelect'),mobileUser=$('#mobileCurrentUserSelect');desktopUser.innerHTML=opts;mobileUser.innerHTML=opts;desktopUser.disabled=locked;mobileUser.disabled=locked;desktopUser.title=locked?'Usuario vinculado al correo de Supabase':'';mobileUser.title=desktopUser.title;
+  const opts=userOptions(),locked=sync.isUserLocked(),desktopUser=$('#currentUserSelect'),mobileUser=$('#mobileCurrentUserSelect'),roleLocked=!store.canManageAdministration()&&store.settings.sync?.provider!=='local';desktopUser.innerHTML=opts;mobileUser.innerHTML=opts;desktopUser.disabled=locked||roleLocked;mobileUser.disabled=locked||roleLocked;desktopUser.title=locked?'Usuario vinculado al correo de Supabase':roleLocked?'La identidad se define al iniciar sesión':'';mobileUser.title=desktopUser.title;
   const mode=store.settings.sync?.provider==='supabase'?'Supabase':'local',last=store.settings.sync?.lastSyncAt;
   $('#footerStatus').textContent=mode==='Supabase'?`Modo Supabase${last?` · última sincronización ${new Date(last).toLocaleString('es-US')}`:''}`:'Datos locales del navegador';
   $('#mobileRecordCount').textContent=`Registros locales: ${store.state.transactions.length}`;
@@ -56,12 +56,15 @@ function updateChrome(){
 }
 
 async function renderRoute(){
-  const token=++renderToken;activeRoute=routeFromHash();updateChrome();
+  const token=++renderToken;activeRoute=routeFromHash();
+  if(activeRoute==='settings'&&!store.canManageAdministration()){activeRoute='home';if(location.hash!=='#home'){location.hash='home';return}}
+  updateChrome();
   const app=$('#app');app.innerHTML='<section class="loading-panel"><div class="spinner"></div><p>Cargando módulo…</p></section>';
   try{
     if(sync.isConfigured()&&!sync.activeSession)await sync.session().catch(()=>null);
     if(activeRoute!=='settings'&&sync.isUserLocked()&&!sync.hasBoundIdentity()){
-      app.innerHTML=`<section class="card"><div class="card-header"><h2>Vincule su identidad antes de operar</h2></div><div class="card-body"><div class="alert alert-warning">La sesión de Supabase está activa, pero su correo no coincide con ningún usuario activo de SKC. Esto evita registrar compras o transferencias con una identidad equivocada.</div><div class="form-actions"><button class="button" id="openIdentitySettings" type="button">Ir a Configuración</button></div></div></section>`;
+      const canFix=store.canManageAdministration();
+      app.innerHTML=`<section class="card"><div class="card-header"><h2>Vincule su identidad antes de operar</h2></div><div class="card-body"><div class="alert alert-warning">La sesión de Supabase está activa, pero su correo no coincide con ningún usuario activo de SKC. Esto evita registrar compras o transferencias con una identidad equivocada.</div>${canFix?'<div class="form-actions"><button class="button" id="openIdentitySettings" type="button">Ir a Configuración</button></div>':'<p class="muted">Contacte a un administrador para vincular el correo de esta cuenta con su usuario SKC.</p>'}</div></section>`;
       $('#openIdentitySettings',app)?.addEventListener('click',()=>navigate('settings'));
       return;
     }
@@ -97,7 +100,7 @@ async function registerServiceWorker(){
   try{await navigator.serviceWorker.register('./sw.js',{scope:'./'})}catch(e){console.warn('Service worker no disponible:',e)}
 }
 
-async function changeUser(id){try{if(sync.isUserLocked()&&id!==sync.boundUserId)throw new Error('La identidad está vinculada al correo de la sesión Supabase.');await store.setCurrentUser(id);await renderRoute()}catch(err){toast(err.message,'error');updateChrome()}}
+async function changeUser(id){try{if(sync.isUserLocked()&&id!==sync.boundUserId)throw new Error('La identidad está vinculada al correo de la sesión Supabase.');if(store.settings.sync?.provider!=='local'&&!store.canManageAdministration()&&id!==store.currentUser().id)throw new Error('No puede cambiar de identidad. Inicie sesión con la cuenta correspondiente.');await store.setCurrentUser(id);await renderRoute()}catch(err){toast(err.message,'error');updateChrome()}}
 async function changeView(mode){applyViewMode(mode);await renderRoute()}
 
 async function bootstrap(){

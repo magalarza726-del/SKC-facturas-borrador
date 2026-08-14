@@ -1,12 +1,15 @@
 import assert from 'node:assert/strict';
 
 globalThis.document={visibilityState:'visible'};
-const {normalizeSupabaseUrl,SupabaseSync}=await import('../docs/assets/sync.js');
+const {normalizeSupabaseUrl,evidenceStoragePath,SupabaseSync}=await import('../docs/assets/sync.js');
 const {store}=await import('../docs/assets/store.js');
+const {db}=await import('../docs/assets/db.js');
 
 assert.equal(normalizeSupabaseUrl('https://abc.supabase.co/rest/v1/'),'https://abc.supabase.co');
 assert.equal(normalizeSupabaseUrl('abc.supabase.co/auth/v1'),'https://abc.supabase.co');
 assert.equal(normalizeSupabaseUrl('https://abc.supabase.co'),'https://abc.supabase.co');
+assert.equal(evidenceStoragePath('transactions',{purchaseDate:'2026-08-14',code:'SKC-20260814-JAVIER-ABC123'},{filename:'foto.JPG'},0),'facturas/2026/08/14/SKC-20260814-JAVIER-ABC123/01_SKC-20260814-JAVIER-ABC123.jpg');
+assert.equal(evidenceStoragePath('messages',{transferDate:'2026-08-14',code:'TRF-20260814-KAREN-XYZ789'},{filename:'pago.pdf'},1),'transferencias/2026/08/14/TRF-20260814-KAREN-XYZ789/02_TRF-20260814-KAREN-XYZ789.pdf');
 
 store.settings.sync={provider:'supabase',supabaseUrl:'https://abc.supabase.co',anonKey:'sb_publishable_test',pollSeconds:20,auto:false,lockUserToEmail:true};
 const failed=new SupabaseSync();
@@ -17,15 +20,16 @@ assert.equal(failed.running,false);assert.equal(statuses.at(-1).running,false);a
 
 const pager=new SupabaseSync();
 let calls=0,merged=0;
-const originalMerge=store.mergeRemote.bind(store),originalReload=store.reload.bind(store);
-store.mergeRemote=async()=>{merged+=1;return true};store.reload=async()=>{};
+const originalMerge=store.mergeRemote.bind(store),originalReload=store.reload.bind(store),originalReconcile=store.reconcileRemoteMirror.bind(store),originalSetMeta=db.setMeta.bind(db);
+let reconciledKeys=0;
+store.mergeRemote=async()=>{merged+=1;return true};store.reload=async()=>{};store.reconcileRemoteMirror=async keys=>{reconciledKeys=keys.size;return 0};db.setMeta=async()=>{};
 pager.apiFetch=async path=>{
   calls+=1;const offset=Number(new URL(`https://x${path}`).searchParams.get('offset')||0);
   const count=offset===0?1000:1;
-  return new Response(JSON.stringify(Array.from({length:count},(_,i)=>({entity_type:'transactions',payload:{id:`${offset+i}`,updatedAt:'2026-08-07T00:00:00.000Z'}}))),{status:200,headers:{'Content-Type':'application/json'}});
+  return new Response(JSON.stringify(Array.from({length:count},(_,i)=>({id:`transactions:${offset+i}`,entity_type:'transactions',payload:{id:`${offset+i}`,updatedAt:'2026-08-07T00:00:00.000Z'}}))),{status:200,headers:{'Content-Type':'application/json'}});
 };
-assert.equal(await pager.pull(),1001);assert.equal(calls,2);assert.equal(merged,1001);
-store.mergeRemote=originalMerge;store.reload=originalReload;
+assert.equal(await pager.pull(),1001);assert.equal(calls,2);assert.equal(merged,1001);assert.equal(reconciledKeys,1001);
+store.mergeRemote=originalMerge;store.reload=originalReload;store.reconcileRemoteMirror=originalReconcile;db.setMeta=originalSetMeta;
 console.log('SYNC SMOKE OK',{pages:calls,rows:merged});
 
 // A failed parent entity must not publish a dependent ledger entry, otherwise the shared flow

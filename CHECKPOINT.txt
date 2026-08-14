@@ -1,4 +1,2 @@
-SKC Facturas GitHub Pages 2.4.0
-Estado: refactor, búsqueda de bugs y batería de pruebas automatizadas completados.
-Mantiene Escritorio/Móvil, Supabase, flujo contable, mensajes, transferencias, recordatorios, formularios configurables, Graph/OneDrive/Outlook, Telegram y Excel oficial.
-Antes de desplegar sobre una base existente, vuelva a ejecutar docs/supabase-schema.sql para habilitar appConfig y las restricciones nuevas.
+SKC Facturas GitHub Pages 2.5.0
+Roles + evidencias Supabase + reconciliación remota

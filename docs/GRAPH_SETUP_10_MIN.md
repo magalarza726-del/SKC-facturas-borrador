@@ -1,6 +1,6 @@
 # Microsoft Graph en aproximadamente 10 minutos
 
-La versión 2.4.0 incluye el asistente en **Configuración → Integraciones**. Después de crear una App Registration, normalmente basta con pegar `Tenant ID` y `Client ID`, guardar y pulsar **Conectar cuenta**.
+La versión 2.5.0 incluye el asistente en **Configuración → Integraciones**. Después de crear una App Registration, normalmente basta con pegar `Tenant ID` y `Client ID`, guardar y pulsar **Conectar cuenta**.
 
 ## 1. Crear la aplicación en Microsoft Entra
 
@@ -21,7 +21,7 @@ Para identidad y OneDrive agregue:
 - `profile`
 - `offline_access`
 
-Agregue `Mail.Send` **solo si activará Outlook** desde la aplicación. La versión 2.4.0 también lo añade automáticamente a la solicitud de autorización cuando Outlook está habilitado.
+Agregue `Mail.Send` **solo si activará Outlook** desde la aplicación. La versión 2.5.0 también lo añade automáticamente a la solicitud de autorización cuando Outlook está habilitado.
 
 Dependiendo de la política corporativa, un administrador puede tener que conceder consentimiento.
 

@@ -1,4 +1,4 @@
--- SKC Facturas Web 2.4.0
+-- SKC Facturas Web 2.5.0
 -- Ejecute este archivo en Supabase SQL Editor.
 -- La aplicación usa únicamente usuarios autenticados y una anon/public key.
 
@@ -18,7 +18,7 @@ create index if not exists skc_events_updated_at_idx on public.skc_events(update
 create index if not exists skc_events_type_idx on public.skc_events(entity_type, updated_at);
 create unique index if not exists skc_events_type_entity_idx on public.skc_events(entity_type, entity_id);
 
--- Migración idempotente: 2.4.0 añade configuración compartida de formularios/reglas.
+-- Migración idempotente: 2.5.0 conserva configuración compartida de formularios/reglas.
 alter table public.skc_events drop constraint if exists skc_events_entity_type_check;
 alter table public.skc_events add constraint skc_events_entity_type_check
   check (entity_type in ('users','catalogs','appConfig','transactions','reminders','messages','ledger','audit')) not valid;

@@ -1,4 +1,4 @@
-export const APP_VERSION='2.4.0';
+export const APP_VERSION='2.5.0';
 export const nowIso=()=>new Date().toISOString();
 export function todayIso(){const d=new Date(),o=d.getTimezoneOffset()*60000;return new Date(d-o).toISOString().slice(0,10)}
 export const uuid=()=>crypto.randomUUID();

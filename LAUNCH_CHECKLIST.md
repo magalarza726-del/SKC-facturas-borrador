@@ -1,34 +1,32 @@
-# Lista de lanzamiento del prototipo 2.4.0
+# Lista de lanzamiento del prototipo 2.5.0
 
 ## Obligatorio antes de usar facturas reales
 
-- [ ] Publicar `docs/` de la versión 2.4.0 y limpiar el service worker/cache anterior.
-- [ ] En el proyecto Supabase existente, volver a ejecutar `docs/supabase-schema.sql` (migración idempotente; no elimina compras).
-- [ ] Reemplazar/renombrar `Usuario Demo` y revisar el correo de cada usuario interno.
-- [ ] Iniciar sesión en Supabase y confirmar que la sesión queda vinculada al usuario SKC correcto.
-- [ ] Mantener autorregistro público desactivado y vinculación por correo activa durante el piloto.
-- [ ] Revisar saldo inicial de cada usuario.
-- [ ] Cargar descripciones y listas de Proyecto 2 reales; revisar que ninguna descripción necesaria quede sin su Proyecto 2 si ese campo seguirá siendo obligatorio.
+- [ ] Publicar `docs/` de la versión 2.5.0 y limpiar el service worker/cache anterior.
+- [ ] En el proyecto Supabase existente, volver a ejecutar `docs/supabase-schema.sql` (migración idempotente).
+- [ ] Confirmar que existen Dalton, Evelyn, Javier, Karen y Tito, todos con saldo inicial `$0.00`.
+- [ ] Asignar el primer rol `ADMIN` desde Configuración y dejar al resto como `USUARIO` según corresponda.
+- [ ] Vincular el correo de cada usuario con su cuenta Supabase e iniciar sesión en dos navegadores distintos.
+- [ ] Confirmar que un `USUARIO` no ve Configuración, auditoría, ajustes/reversos ni exportaciones administrativas.
+- [ ] Confirmar que el `ADMIN` sí ve la información global y las herramientas administrativas.
+- [ ] Cargar descripciones, Proyecto 2, centros de costo y demás catálogos reales.
 - [ ] Revisar Formularios: visibilidad, obligatoriedad, etiquetas, valores por defecto y orden.
-- [ ] Probar una compra identificada claramente como prueba en dos navegadores.
-- [ ] Adjuntar una evidencia real de prueba y abrirla desde el segundo navegador.
-- [ ] Probar un duplicado exacto y comprobar que exige revisión/justificación; probar también una compra sin comprobante similar.
+- [ ] Probar una compra de prueba en dos navegadores y repetir la sincronización varias veces.
+- [ ] Adjuntar 2 o más evidencias a una compra y verificar **Ver evidencia** (anterior/siguiente) y **Descargar evidencia** desde el segundo navegador.
+- [ ] En Supabase Storage, comprobar que los archivos queden en `skc-evidence/facturas/YYYY/MM/DD/CODIGO/`.
+- [ ] Probar un duplicado exacto y una compra similar sin comprobante.
 - [ ] Probar una transferencia y confirmar que solo afecta el saldo al aceptarse.
-- [ ] Repetir sincronización varias veces y confirmar que saldo y movimientos no se duplican.
-- [ ] Descargar y abrir el Excel oficial; verificar columnas A:Q y algunos valores contra el historial.
+- [ ] Si `skc_events` está vacío, sincronizar y confirmar que no permanezcan movimientos antiguos marcados como sincronizados en el navegador.
+- [ ] Descargar y abrir el Excel oficial; verificar columnas A:Q contra el Historial.
 - [ ] Descargar un respaldo completo antes de comenzar el piloto.
-- [ ] Confirmar que participan únicamente usuarios de confianza; los roles de esta versión son controles de la app, no autorización de servidor para producción.
 
-## Microsoft / Excel en OneDrive (opcional el primer día)
+## Microsoft / OneDrive (opcional)
 
-- [ ] Crear App Registration tipo SPA y configurar Tenant ID + Client ID.
-- [ ] Probar identidad y subida de evidencia a OneDrive.
-- [ ] Activar Outlook solo si se usarán correos; `Mail.Send` no es necesario en otro caso.
-- [ ] Si se usará actualización automática del Excel, habilitarla **solo en un equipo ADMIN designado** para evitar que varios equipos compitan por el mismo archivo.
+- [ ] Mantener Microsoft desactivado si Supabase Storage será el repositorio principal de evidencias.
+- [ ] Si se desea un respaldo adicional en OneDrive, crear App Registration SPA y configurar Tenant ID + Client ID.
+- [ ] Activar Outlook únicamente si realmente se usarán correos.
 
-## Telegram (opcional)
+## Seguridad del piloto
 
-- [ ] Desplegar la Edge Function incluida.
-- [ ] Guardar `TELEGRAM_BOT_TOKEN` como secreto del backend, nunca en GitHub Pages.
-- [ ] Configurar URL del proxy y Chat ID.
-- [ ] Enviar una prueba desde Integraciones.
+- [ ] Mantener autorregistro público desactivado y vinculación por correo activa.
+- [ ] Trabajar inicialmente con usuarios de confianza. Los roles 2.5.0 se aplican en la interfaz y lógica de negocio; para producción definitiva conviene endurecer también autorización RLS por rol en el servidor.

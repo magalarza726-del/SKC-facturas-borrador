@@ -1,6 +1,6 @@
 # Telegram mediante proxy seguro
 
-GitHub Pages y una futura APK no deben contener el token del bot. La versión 2.4.0 incluye una Supabase Edge Function en `supabase/functions/telegram/index.ts`.
+GitHub Pages y una futura APK no deben contener el token del bot. La versión 2.5.0 incluye una Supabase Edge Function en `supabase/functions/telegram/index.ts`.
 
 ## Preparación
 

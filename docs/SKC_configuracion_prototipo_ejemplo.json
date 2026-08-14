@@ -1,8 +1,8 @@
 {
   "format": "skc-app-configuration",
   "schemaVersion": 1,
-  "appVersion": "2.4.0",
-  "createdAt": "2026-07-29T23:30:00.000Z",
+  "appVersion": "2.5.0",
+  "createdAt": "2026-08-14T14:00:00.000Z",
   "settings": {
     "groupName": "PROYECTOS",
     "rules": {
@@ -21,7 +21,7 @@
     },
     "integrations": {
       "microsoft": {
-        "enabled": true,
+        "enabled": false,
         "tenantId": "PEGAR_TENANT_ID",
         "clientId": "PEGAR_CLIENT_ID",
         "redirectUri": "https://magalarza726-del.github.io/SKC-facturas-borrador/",
@@ -33,7 +33,7 @@
           "Files.ReadWrite"
         ],
         "driveFolder": "SKC Facturas",
-        "uploadEvidence": true,
+        "uploadEvidence": false,
         "sendOutlook": false,
         "notifyEmail": ""
       },
@@ -76,6 +76,52 @@
       "Otro"
     ]
   },
-  "users": [],
+  "users": [
+    {
+      "id": "dalton",
+      "name": "Dalton",
+      "email": "",
+      "role": "USUARIO",
+      "transferEnabled": true,
+      "initialBalance": 0,
+      "active": true
+    },
+    {
+      "id": "evelyn",
+      "name": "Evelyn",
+      "email": "",
+      "role": "USUARIO",
+      "transferEnabled": true,
+      "initialBalance": 0,
+      "active": true
+    },
+    {
+      "id": "javier",
+      "name": "Javier",
+      "email": "",
+      "role": "USUARIO",
+      "transferEnabled": true,
+      "initialBalance": 0,
+      "active": true
+    },
+    {
+      "id": "karen",
+      "name": "Karen",
+      "email": "",
+      "role": "USUARIO",
+      "transferEnabled": true,
+      "initialBalance": 0,
+      "active": true
+    },
+    {
+      "id": "tito",
+      "name": "Tito",
+      "email": "",
+      "role": "USUARIO",
+      "transferEnabled": true,
+      "initialBalance": 0,
+      "active": true
+    }
+  ],
   "sensitiveIncluded": false
 }
