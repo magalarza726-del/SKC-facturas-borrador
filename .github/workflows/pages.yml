@@ -1,0 +1,62 @@
+name: SKC Web 3.3.6 - Validate and deploy GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'release/SKC_Facturas_Web_GitHub_3.3.6.zip'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Extract SKC Web 3.3.6
+        run: |
+          rm -rf site-src
+          mkdir -p site-src
+          unzip -q release/SKC_Facturas_Web_GitHub_3.3.6.zip -d site-src
+      - name: Static and syntax validation
+        working-directory: site-src
+        run: |
+          python web-tests/validate_static.py
+          find docs/assets -name '*.js' -print0 | xargs -0 -n1 node --check
+          node --check docs/sw.js
+      - name: Functional smoke tests
+        working-directory: site-src
+        run: |
+          node web-tests/store-smoke.mjs
+          node web-tests/files-smoke.mjs
+          node web-tests/sync-smoke.mjs
+          node web-tests/excel-smoke.mjs
+          node web-tests/portable-smoke.mjs
+          python web-tests/validate_excel.py
+      - name: Upload validated site
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: site-src/docs
+
+  deploy:
+    needs: validate
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/configure-pages@v5
+      - id: deployment
+        uses: actions/deploy-pages@v4

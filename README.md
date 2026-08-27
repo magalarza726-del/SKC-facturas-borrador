@@ -1,27 +1,27 @@
-# SKC Facturas Web 2.5.0
+# SKC Facturas Web
 
-Versión para piloto multiusuario de SKC con interfaz **Escritorio/Móvil**, IndexedDB local-first, Supabase como backend compartido, Supabase Storage para evidencias, flujo contable, transferencias, recordatorios, duplicados, Excel oficial y roles de acceso.
+Versión publicada: **3.3.6**.
 
-## Cambios principales 2.5.0
+Esta rama conserva el historial anterior del repositorio, pero GitHub Pages se despliega desde el paquete validado:
 
-- Usuarios reales precargados: **Dalton, Evelyn, Javier, Karen y Tito**, con saldo inicial `$0.00`.
-- Eliminación automática de `Usuario Demo` y deduplicación de usuarios repetidos.
-- Roles en una sola aplicación: **ADMIN** ve configuración, auditoría, ajustes, exportaciones y vista global; **USUARIO** opera y consulta únicamente su ámbito.
-- Se elimina Manual de la navegación.
-- Supabase Storage es el repositorio principal de fotos/PDF. Microsoft Graph/OneDrive permanece como integración opcional.
-- Historial permite **Ver evidencia** en una galería con anterior/siguiente y **Descargar evidencia**; múltiples archivos se empaquetan en ZIP.
-- Evidencias remotas organizadas por código SKC en `facturas/año/mes/día/CODIGO/`.
-- Reconciliación remota: si Supabase está vacío o un evento sincronizado deja de existir remotamente, el espejo local ya no sigue mostrando ese dato antiguo. Los datos locales aún pendientes no se borran automáticamente.
-- Se conserva la exportación al Excel oficial SKC y el resto de funciones de 2.4.0.
+`release/SKC_Facturas_Web_GitHub_3.3.6.zip`
 
-## Primer administrador
+El workflow `.github/workflows/pages.yml` descomprime la versión, ejecuta validaciones estáticas y pruebas funcionales, y publica `docs/` en GitHub Pages.
 
-En una instalación limpia todos los usuarios nacen como `USUARIO`. Mientras no exista ningún `ADMIN`, Configuración permanece disponible para asignar el primer administrador. Desde ese momento, solo un administrador puede volver a entrar a Configuración y modificar usuarios/reglas compartidas.
+## Arquitectura actual
 
-## Publicación
+- Supabase como fuente de verdad compartida con Android.
+- Usuarios y roles ADMIN / USUARIO.
+- Compras, ingresos, transferencias, mensajes, recordatorios y evidencias.
+- Base de datos administrativa y exportación CSV/XLSX.
+- Excel reconstruido desde el histórico, sin reutilizar el archivo del día anterior.
+- Compatibilidad con Supabase Storage / Cloudflare R2.
+- PWA para escritorio y móvil.
 
-El sitio publicable está en `docs/`. Para Supabase, ejecute o vuelva a ejecutar `docs/supabase-schema.sql`; es idempotente. El bucket privado `skc-evidence` almacena las evidencias.
+## Seguridad
 
-Antes de actualizar un piloto, exporte un respaldo. Después de desplegar `docs/`, limpie el service worker/cache de la versión anterior.
+No se publican secretos de Supabase Service Role, credenciales de R2 ni contraseñas. La configuración pública del cliente se realiza desde la aplicación.
 
-Consulte `RELEASE_2.5.0.md` y `VALIDATION_REPORT_2.5.0.txt` para los detalles de esta entrega.
+## Despliegue
+
+Cada actualización del paquete 3.3.6 o del workflow en `main` dispara la validación y el despliegue de GitHub Pages.
