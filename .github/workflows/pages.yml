@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'release/SKC_Facturas_Web_GitHub_3.3.6.zip'
+      - 'release/b64/**'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 
@@ -25,11 +25,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Extract SKC Web 3.3.6
+      - name: Rebuild SKC Web 3.3.6 archive
         run: |
+          set -euo pipefail
+          cat release/b64/part*.b64 | tr -d '\r\n' | base64 --decode > /tmp/SKC_Facturas_Web_GitHub_3.3.6.zip
+          echo '1d3eff8b8869bd5792c107d34b59e0c2d8f939cb4ab6bad7c2c49ac08421487e  /tmp/SKC_Facturas_Web_GitHub_3.3.6.zip' | sha256sum -c -
+          unzip -t /tmp/SKC_Facturas_Web_GitHub_3.3.6.zip
           rm -rf site-src
           mkdir -p site-src
-          unzip -q release/SKC_Facturas_Web_GitHub_3.3.6.zip -d site-src
+          unzip -q /tmp/SKC_Facturas_Web_GitHub_3.3.6.zip -d site-src
       - name: Static and syntax validation
         working-directory: site-src
         run: |
