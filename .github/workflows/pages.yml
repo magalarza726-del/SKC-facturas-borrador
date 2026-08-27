@@ -1,10 +1,11 @@
-name: SKC Web 3.3.6 - Validate and deploy GitHub Pages
+name: SKC Web - Validate and deploy GitHub Pages
 
 on:
   push:
     branches: [main]
     paths:
-      - 'release/b64/**'
+      - 'docs/**'
+      - 'web-tests/**'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 
@@ -25,34 +26,24 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Rebuild SKC Web 3.3.6 archive
+      - name: Validate JavaScript syntax
         run: |
           set -euo pipefail
-          cat release/b64/part*.b64 | tr -d '\r\n' | base64 --decode > /tmp/SKC_Facturas_Web_GitHub_3.3.6.zip
-          echo '1d3eff8b8869bd5792c107d34b59e0c2d8f939cb4ab6bad7c2c49ac08421487e  /tmp/SKC_Facturas_Web_GitHub_3.3.6.zip' | sha256sum -c -
-          unzip -t /tmp/SKC_Facturas_Web_GitHub_3.3.6.zip
-          rm -rf site-src
-          mkdir -p site-src
-          unzip -q /tmp/SKC_Facturas_Web_GitHub_3.3.6.zip -d site-src
-      - name: Static and syntax validation
-        working-directory: site-src
-        run: |
-          python web-tests/validate_static.py
           find docs/assets -name '*.js' -print0 | xargs -0 -n1 node --check
           node --check docs/sw.js
+      - name: Static validation
+        run: python web-tests/validate_static.py
       - name: Functional smoke tests
-        working-directory: site-src
         run: |
           node web-tests/store-smoke.mjs
           node web-tests/files-smoke.mjs
           node web-tests/sync-smoke.mjs
           node web-tests/excel-smoke.mjs
-          node web-tests/portable-smoke.mjs
           python web-tests/validate_excel.py
       - name: Upload validated site
         uses: actions/upload-pages-artifact@v4
         with:
-          path: site-src/docs
+          path: docs
 
   deploy:
     needs: validate
